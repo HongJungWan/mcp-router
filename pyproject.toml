@@ -5,18 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mcp-router"
 version = "0.1.0"
-description = "MCP Gateway tool-routing benchmark"
+description = "MCP tool-routing recall benchmark"
 requires-python = ">=3.10"
 dependencies = []
 
 [project.optional-dependencies]
-claude = ["anthropic"]
-local = ["sentence-transformers"]
-pg = ["psycopg[binary]", "pgvector"]
-agent = ["langgraph", "langchain-core", "langchain-anthropic"]
-otel = ["opentelemetry-sdk", "opentelemetry-exporter-otlp"]
-viz = []
-dev = []
+# Real, opt-in adapters. The offline default path needs none of these.
+claude = ["anthropic"]                       # real Claude tool-use llm/agent
+local = ["sentence-transformers"]            # real bge-small embeddings
 
 [project.scripts]
 mcp-router = "mcp_router.cli:main"

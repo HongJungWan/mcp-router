@@ -17,6 +17,7 @@ dist/
 # Benchmark output directories
 artifacts/
 artifacts2/
+artifacts-real/
 
 # Tooling caches
 .pytest_cache/

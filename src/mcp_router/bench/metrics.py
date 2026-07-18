@@ -101,9 +101,17 @@ def mcnemar(success_a: Sequence[int], success_b: Sequence[int]) -> Dict[str, flo
     return {"b": b, "c": c, "chi2": round(chi2, 4), "p_value": p, "p_str": format_p(p)}
 
 
-def recall_at_k(recall_hits: Sequence[bool]) -> float:
-    return mean([1.0 if h else 0.0 for h in recall_hits])
-
-
-def success_rate(successes: Sequence[bool]) -> float:
-    return mean([1.0 if s else 0.0 for s in successes])
+def phi_correlation(x: Sequence[int], y: Sequence[int]) -> float:
+    """Phi (Matthews) correlation between two binary sequences. Used to report
+    whether task_success is genuinely independent of recall_hit (low |phi|) or
+    just a re-labeling of it (high |phi|)."""
+    n = len(x)
+    if n == 0:
+        return 0.0
+    n11 = sum(1 for a, b in zip(x, y) if a and b)
+    n10 = sum(1 for a, b in zip(x, y) if a and not b)
+    n01 = sum(1 for a, b in zip(x, y) if not a and b)
+    n00 = sum(1 for a, b in zip(x, y) if not a and not b)
+    num = n11 * n00 - n10 * n01
+    den = math.sqrt((n11 + n10) * (n01 + n00) * (n11 + n01) * (n10 + n00))
+    return round(num / den, 4) if den else 0.0

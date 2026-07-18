@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="470" viewBox="0 0 840 470" font-family="Segoe UI, Pretendard, sans-serif">
+<rect width="840" height="470" fill="#F0EEE6"/>
+<text x="70" y="30" font-size="18" font-weight="700" fill="#29261B">Fractional recall@k - semantic-topk cliff vs recovery</text>
+<line x1="70" y1="414.0" x2="640" y2="414.0" stroke="#DED7C9"/>
+<text x="60" y="418.0" font-size="12" text-anchor="end" fill="#8C8575">0.0</text>
+<line x1="70" y1="342.4" x2="640" y2="342.4" stroke="#DED7C9"/>
+<text x="60" y="346.4" font-size="12" text-anchor="end" fill="#8C8575">0.2</text>
+<line x1="70" y1="270.8" x2="640" y2="270.8" stroke="#DED7C9"/>
+<text x="60" y="274.8" font-size="12" text-anchor="end" fill="#8C8575">0.4</text>
+<line x1="70" y1="199.2" x2="640" y2="199.2" stroke="#DED7C9"/>
+<text x="60" y="203.2" font-size="12" text-anchor="end" fill="#8C8575">0.6</text>
+<line x1="70" y1="127.6" x2="640" y2="127.6" stroke="#DED7C9"/>
+<text x="60" y="131.6" font-size="12" text-anchor="end" fill="#8C8575">0.8</text>
+<line x1="70" y1="56.0" x2="640" y2="56.0" stroke="#DED7C9"/>
+<text x="60" y="60.0" font-size="12" text-anchor="end" fill="#8C8575">1.0</text>
+<text x="70.0" y="436" font-size="12" text-anchor="middle" fill="#8C8575">k=1</text>
+<text x="260.0" y="436" font-size="12" text-anchor="middle" fill="#8C8575">k=3</text>
+<text x="450.0" y="436" font-size="12" text-anchor="middle" fill="#8C8575">k=5</text>
+<text x="640.0" y="436" font-size="12" text-anchor="middle" fill="#8C8575">k=10</text>
+<text x="355" y="458" font-size="13" text-anchor="middle" fill="#29261B">exposed top-k</text>
+<text x="18" y="235" font-size="13" text-anchor="middle" fill="#29261B" transform="rotate(-90 18 235)">fractional recall@k</text>
+<path d="M70.0,96.8 L260.0,73.4 L450.0,62.9 L640.0,56.0" fill="none" stroke="#C6714F" stroke-width="2.5"/>
+<circle cx="70.0" cy="96.8" r="3.5" fill="#C6714F"/>
+<circle cx="260.0" cy="73.4" r="3.5" fill="#C6714F"/>
+<circle cx="450.0" cy="62.9" r="3.5" fill="#C6714F"/>
+<circle cx="640.0" cy="56.0" r="3.5" fill="#C6714F"/>
+<line x1="656" y1="64" x2="680" y2="64" stroke="#C6714F" stroke-width="2.5"/>
+<text x="686" y="68" font-size="12" fill="#29261B">semantic_topk @ 100</text>
+<path d="M70.0,135.5 L260.0,86.3 L450.0,83.9 L640.0,62.9" fill="none" stroke="#D4A27F" stroke-width="2.5"/>
+<circle cx="70.0" cy="135.5" r="3.5" fill="#D4A27F"/>
+<circle cx="260.0" cy="86.3" r="3.5" fill="#D4A27F"/>
+<circle cx="450.0" cy="83.9" r="3.5" fill="#D4A27F"/>
+<circle cx="640.0" cy="62.9" r="3.5" fill="#D4A27F"/>
+<line x1="656" y1="86" x2="680" y2="86" stroke="#D4A27F" stroke-width="2.5"/>
+<text x="686" y="90" font-size="12" fill="#29261B">semantic_topk @ 200</text>
+<path d="M70.0,163.9 L260.0,92.3 L450.0,86.3 L640.0,68.9" fill="none" stroke="#B5654A" stroke-width="2.5"/>
+<circle cx="70.0" cy="163.9" r="3.5" fill="#B5654A"/>
+<circle cx="260.0" cy="92.3" r="3.5" fill="#B5654A"/>
+<circle cx="450.0" cy="86.3" r="3.5" fill="#B5654A"/>
+<circle cx="640.0" cy="68.9" r="3.5" fill="#B5654A"/>
+<line x1="656" y1="108" x2="680" y2="108" stroke="#B5654A" stroke-width="2.5"/>
+<text x="686" y="112" font-size="12" fill="#29261B">semantic_topk @ 300</text>
+<path d="M70.0,160.9 L260.0,89.8 L450.0,83.9 L640.0,67.4" fill="none" stroke="#6B8F71" stroke-width="2.5"/>
+<circle cx="70.0" cy="160.9" r="3.5" fill="#6B8F71"/>
+<circle cx="260.0" cy="89.8" r="3.5" fill="#6B8F71"/>
+<circle cx="450.0" cy="83.9" r="3.5" fill="#6B8F71"/>
+<circle cx="640.0" cy="67.4" r="3.5" fill="#6B8F71"/>
+<line x1="656" y1="130" x2="680" y2="130" stroke="#6B8F71" stroke-width="2.5"/>
+<text x="686" y="134" font-size="12" fill="#29261B">hierarchical @ 300</text>
+<path d="M70.0,163.9 L260.0,82.3 L450.0,66.0 L640.0,56.0" fill="none" stroke="#8A6D9E" stroke-width="2.5"/>
+<circle cx="70.0" cy="163.9" r="3.5" fill="#8A6D9E"/>
+<circle cx="260.0" cy="82.3" r="3.5" fill="#8A6D9E"/>
+<circle cx="450.0" cy="66.0" r="3.5" fill="#8A6D9E"/>
+<circle cx="640.0" cy="56.0" r="3.5" fill="#8A6D9E"/>
+<line x1="656" y1="152" x2="680" y2="152" stroke="#8A6D9E" stroke-width="2.5"/>
+<text x="686" y="156" font-size="12" fill="#29261B">hybrid @ 300</text>
+</svg>

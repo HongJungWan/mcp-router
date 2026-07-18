@@ -39,7 +39,7 @@ def get_index(backend: str = "memory", dim: int = 512) -> "VectorIndex":
     if backend == "memory":
         from .memory import MemoryIndex
         return MemoryIndex(dim=dim)
-    if backend == "pgvector":
-        from .pgvector import PgVectorIndex
-        return PgVectorIndex(dim=dim)
-    raise ValueError(f"unknown vector backend: {backend}")
+    # A production pgvector/HNSW backend is a roadmap item. For catalogs of a few
+    # hundred tools, exact pure-Python cosine is faster and exact than ANN, so it
+    # was intentionally not built (see README "over-engineering" note).
+    raise ValueError(f"unknown/unsupported vector backend: {backend} (only 'memory')")

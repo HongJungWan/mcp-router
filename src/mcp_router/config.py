@@ -1,5 +1,5 @@
 """Central configuration. Everything that affects benchmark output is here and
-is recorded into each BenchRun so results are reproducible and auditable."""
+is serialized into each run's summary.json so results are reproducible/auditable."""
 from __future__ import annotations
 
 import os
@@ -8,7 +8,7 @@ from typing import List
 
 
 # ---- global determinism knobs -------------------------------------------------
-# Changing any of these changes results; they are stamped into every BenchRun.
+# Changing any of these changes results; they are stamped into every run summary.
 SEED = int(os.environ.get("MCPR_SEED", "1234"))
 EMBED_DIM = int(os.environ.get("MCPR_EMBED_DIM", "512"))
 
@@ -47,10 +47,9 @@ class BenchConfig:
     self_check_n: int = SELF_CHECK_N
     core_share: int = CORE_SHARE
     kw_collision_ratio: float = KW_COLLISION_RATIO
-    lex_weight: float = 2.0
     embed_provider: str = "mock"       # mock | mock_char | local
     llm_provider: str = "mock"         # mock | claude
-    vector_backend: str = "memory"     # memory | pgvector
+    vector_backend: str = "memory"     # memory (pgvector intentionally not built; see README)
     n_queries: int = 180               # synthetic labeled queries
     multi_tool_ratio: float = 0.25     # fraction of queries needing 2-3 gold tools
 

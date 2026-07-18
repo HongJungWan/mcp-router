@@ -4,9 +4,10 @@ The agent receives ONLY the tools the gateway exposed and must pick the right
 one(s). If routing dropped the gold tool, the agent literally cannot select it —
 that is how a recall miss becomes a task failure.
 
-Default = MockReActAgent (deterministic, offline). Opt-in LangGraphReActAgent
-(pip install .[agent], ANTHROPIC_API_KEY) implements the same interface with a
-real LangGraph ReAct loop over Claude tool-use.
+It is NOT told how many gold tools exist (no cardinality leak): it selects up to
+`budget` tools and self-limits below that via the llm's confidence gap. The same
+agent wraps either the offline mock (Jaccard) llm or the real Claude tool-use llm
+(both expose `choose_tools`) — so no separate LangGraph agent is needed.
 """
 from __future__ import annotations
 
@@ -14,22 +15,18 @@ from typing import List
 
 from ..models import Tool
 
+_BUDGET = 3
 
-class MockReActAgent:
-    model_id = "mock-react-v1"
 
-    def __init__(self, llm):
+class ReActAgent:
+    def __init__(self, llm, budget: int = _BUDGET):
         self.llm = llm
+        self.budget = budget
+        self.model_id = getattr(llm, "model_id", "react")
 
-    def run(self, query: str, exposed_tools: List[Tool], n_gold: int) -> List[int]:
-        # A single deterministic reason+act step: score exposed tools, select n.
-        return self.llm.choose_tools(query, exposed_tools, n_gold)
+    def run(self, query: str, exposed_tools: List[Tool]) -> List[int]:
+        return self.llm.choose_tools(query, exposed_tools, self.budget)
 
 
-def get_agent(kind: str, llm):
-    if kind == "mock":
-        return MockReActAgent(llm)
-    if kind == "langgraph":  # pragma: no cover - optional heavy dep
-        from .agent_langgraph import LangGraphReActAgent
-        return LangGraphReActAgent(llm)
-    raise ValueError(f"unknown agent kind: {kind}")
+def get_agent(llm, budget: int = _BUDGET) -> ReActAgent:
+    return ReActAgent(llm, budget)

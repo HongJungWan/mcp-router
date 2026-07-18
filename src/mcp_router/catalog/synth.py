@@ -12,8 +12,9 @@ Design (and its honest limits):
     core_share and `--embed mock_char` re-checks under a non-BoW geometry.
   * Keyword collisions: a `kw_collision_ratio` fraction of distractors carry the
     gold's rare keyword too. For those the lexical signal no longer uniquely
-    identifies gold, so the hybrid router can genuinely lose — which removes the
-    degenerate "hybrid always ≥ semantic" (McNemar b=0) construction.
+    identifies gold, so the hybrid router can genuinely lose *recall* (e.g. at k=1
+    hierarchical can beat hybrid). The routing McNemar is therefore computed on
+    recall_hit — not the degenerate "hybrid always ≥ semantic" construction.
 """
 from __future__ import annotations
 

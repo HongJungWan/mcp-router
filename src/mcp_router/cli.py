@@ -52,9 +52,9 @@ def cmd_bench_run(a) -> int:
             lo, hi = c["recall_ci"]
             print(f"  size={size:>4}: recall@1={c['recall_at_k']:.3f}  (95% cluster-CI {lo:.3f}-{hi:.3f})")
 
-    n_cliff = sum(1 for s in art.tracer.spans if s.is_cliff)
-    print(f"\nlabel self-consistency κ (NOT human-verified) = {art.label_report['self_consistency_kappa']}")
-    print(f"cliff events detected                          = {n_cliff}")
+    print(f"\nlabel self-consistency κ (NOT human-verified)  = {art.label_report['self_consistency_kappa']}")
+    print(f"phi(recall_hit, task_success)                  = {art.phi_recall_success}  (low => decoupled)")
+    print(f"semantic-routing cliff events                  = {art.tracer.n_cliff()}")
     print(f"\nartifacts written to: {a.out}")
     for kind, p in paths.items():
         print(f"  {kind:<7} {p}")
@@ -108,7 +108,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--out", default="artifacts", help="output directory")
     run.add_argument("--embed", default="mock", choices=["mock", "mock_char", "local"])
     run.add_argument("--llm", default="mock", choices=["mock", "claude"])
-    run.add_argument("--vector", default="memory", choices=["memory", "pgvector"])
+    run.add_argument("--vector", default="memory", choices=["memory"])
     run.add_argument("--sizes", default="", help="comma list, e.g. 100,200,300")
     run.add_argument("--queries", type=int, default=0, help="override query count")
     run.set_defaults(func=cmd_bench_run)

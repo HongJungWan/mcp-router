@@ -43,8 +43,7 @@ def write_all(art: BenchArtifacts, outdir: str) -> Dict[str, str]:
 def _write_csv(art: BenchArtifacts, path: str) -> None:
     with open(path, "w", newline="", encoding="utf-8") as f:
         cols = ["catalog_size", "strategy", "k", "n", "recall_at_k", "recall_ci",
-                "hit_rate", "task_success", "success_ci", "token_mean", "token_p95",
-                "latency_p50_ms", "latency_p95_ms"]
+                "hit_rate", "task_success", "success_ci", "token_mean", "token_p95"]
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
         for c in art.cells:
@@ -62,7 +61,8 @@ def _write_json(art: BenchArtifacts, path: str) -> None:
             "vector_backend": art.vector_backend, "n_queries": art.n_queries,
             "cells": art.cells, "cells_by_difficulty": art.cells_by_difficulty,
             "mcnemar": art.mcnemar, "label_report": art.label_report,
-            "n_cliff_events": sum(1 for s in art.tracer.spans if s.is_cliff),
+            "phi_recall_success": art.phi_recall_success,
+            "n_cliff_events": art.tracer.n_cliff(),
         }, f, ensure_ascii=False, indent=2)
 
 
@@ -125,7 +125,7 @@ def _md_table(art: BenchArtifacts, size: int, cells=None, difficulty=None) -> st
 
 def _write_md(art: BenchArtifacts, path: str, paths: Dict[str, str]) -> None:
     L, big = art.label_report, max(art.config["catalog_sizes"])
-    n_cliff = sum(1 for s in art.tracer.spans if s.is_cliff)
+    n_cliff = art.tracer.n_cliff()
     lines = [
         "# MCP Gateway — tool-routing benchmark (M3)", "",
         "**Reproducibility envelope**", "",
@@ -149,24 +149,28 @@ def _write_md(art: BenchArtifacts, path: str, paths: Dict[str, str]) -> None:
     lines += [f"## by difficulty — catalog size {big}", ""]
     for diff in ("single", "multi", "ambiguous"):
         lines += [f"**{diff}**", "", _md_table(art, big, art.cells_by_difficulty, diff), ""]
+    lines += ["## task-success (SECONDARY, weak offline agent)", "",
+              f"phi(recall_hit, task_success) = **{art.phi_recall_success}** — low magnitude "
+              "means task_success is a genuinely separate signal from recall, not a re-labeling. "
+              "Absolute task-success values are low because the offline agent is a deliberately "
+              "weak Jaccard proxy that is NOT told how many tools to pick; only the ordering and "
+              "the recall→ceiling relationship are meaningful. `task_success`/`hit_rate` per cell "
+              "are in `summary.json`.", ""]
     lines += ["## Recall cliff", "",
               f"Detected **{n_cliff}** cliff events (gold exists but ranked past the exposed "
               f"top-k under semantic routing). See `traces.jsonl`.", "", "Example traces:", ""]
     for s in art.tracer.cliff_events(limit=6):
         lines.append(f"- q#{s.query_id} [{s.difficulty}] {s.strategy}@{s.catalog_size} k={s.k}: "
                      f"gold ranks {s.gold_ranks} · task_success={s.task_success} · `{s.trace_id}`")
-    lines += ["", "## McNemar (task success, paired by query, BH-corrected)", "",
-              "`b` = semantic wins / other loses; `c` = other wins / semantic loses. "
-              "`q` = Benjamini-Hochberg adjusted p across all comparisons.", "",
+    lines += ["", "## McNemar (recall_hit, paired by query, BH-corrected)", "",
+              "Computed on **recall_hit** (the routing question), not the weak task_success. "
+              "`b` = A hit / B miss; `c` = B hit / A miss. `q` = Benjamini-Hochberg adjusted p. "
+              "hierarchical-vs-hybrid is genuinely two-sided (keyword collisions).", "",
               "| size | k | A | B | b | c | χ² | p | q |", "|---|---|---|---|---|---|---|---|---|"]
     for m in art.mcnemar:
         if m["k"] in (1, 3):
             lines.append(f"| {m['catalog_size']} | {m['k']} | {m['strategy_a']} | {m['strategy_b']} | "
                          f"{m['b']} | {m['c']} | {m['chi2']} | {m['p_str']} | {m['q_str']} |")
-    lines += ["", "## Latency (non-deterministic indicator — NOT a headline metric)", "",
-              "In-process, single-call routing latency with **no load generation**; varies "
-              "run-to-run and is not part of the reproducibility guarantee. Real numbers need "
-              "a load harness (roadmap). p50/p95 per cell are in `results.csv`.", "",
-              f"![recall cliff]({os.path.basename(paths['svg'])})", ""]
+    lines += ["", f"![recall cliff]({os.path.basename(paths['svg'])})", ""]
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))

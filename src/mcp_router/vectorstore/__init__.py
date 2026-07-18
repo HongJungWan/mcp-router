@@ -1,7 +1,8 @@
 """Vector index behind a stable interface.
 
-Default = `memory` (pure-Python cosine, offline, deterministic).
-Opt-in `pgvector` backend (HNSW in Postgres) via pip install .[pg].
+`memory` (pure-Python exact cosine, offline, deterministic). A pgvector/HNSW
+backend was intentionally NOT built: for a few-hundred-tool catalog, exact
+brute-force cosine is both faster and exact, so ANN would be scale cosplay.
 """
 from .base import VectorIndex, cosine, dot, l2_normalize, get_index
 

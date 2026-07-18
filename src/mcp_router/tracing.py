@@ -3,17 +3,16 @@
 Records, per (query, strategy, k, catalog_size), the candidate/exposed sets and
 the gold tool's rank in the full semantic ranking — so a reader can see *the
 exact query where top-k dropped the gold tool to rank k+1*. That is the "recall
-cliff trace" the project is built to expose.
-
-If `opentelemetry` is installed and MCPR_OTEL=1, spans are also emitted via
-OTLP; otherwise this stays pure-stdlib and writes newline-delimited JSON.
+cliff trace" the project is built to expose. Pure-stdlib; writes
+newline-delimited JSON. (An OpenTelemetry emitter was intentionally cut: a
+single-process offline batch bench has no collector and no distributed serving,
+so JSONL is sufficient — see README "over-engineering" note.)
 """
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List
 
 from .determinism import stable_hash
 
@@ -50,27 +49,23 @@ class Span:
 @dataclass
 class Tracer:
     spans: List[Span] = field(default_factory=list)
-    _otel: Optional[object] = None
-
-    def __post_init__(self):
-        if os.environ.get("MCPR_OTEL") == "1":
-            try:  # pragma: no cover - optional
-                from opentelemetry import trace
-                self._otel = trace.get_tracer("mcp_router")
-            except Exception:
-                self._otel = None
 
     def record(self, span: Span) -> None:
         self.spans.append(span)
-        if self._otel is not None:  # pragma: no cover - optional
-            with self._otel.start_as_current_span("route") as s:
-                for kk, vv in span.__dict__.items():
-                    s.set_attribute(f"mcp_router.{kk}", vv if isinstance(vv, (int, float, bool, str)) else str(vv))
 
     def flush(self, path: str) -> None:
         with open(path, "w", encoding="utf-8") as f:
             for s in self.spans:
                 f.write(s.to_json() + "\n")
 
+    def _semantic_cliffs(self) -> List[Span]:
+        # gold_ranks are the SEMANTIC full-ranking positions, so a cliff event is
+        # only meaningful for semantic_topk spans. Counting other strategies'
+        # spans here would misattribute semantic ranks and ~2x inflate the count.
+        return [s for s in self.spans if s.strategy == "semantic_topk" and s.is_cliff]
+
+    def n_cliff(self) -> int:
+        return len(self._semantic_cliffs())
+
     def cliff_events(self, limit: int = 20) -> List[Span]:
-        return [s for s in self.spans if s.is_cliff][:limit]
+        return self._semantic_cliffs()[:limit]

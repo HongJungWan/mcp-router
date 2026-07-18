@@ -2,7 +2,7 @@
 
 **Reproducibility envelope**
 
-- git_sha: `64e61db` · seed: `1234` · embed: `mock-bow-hash-v1` · llm: `mock-jaccard-agent-v1` · vector: `memory`
+- git_sha: `5a4c01e` · seed: `1234` · embed: `mock-bow-hash-v1` · llm: `mock-jaccard-agent-v1` · vector: `memory`
 - queries: 180 · staircase: [100, 200, 300] · k: [1, 3, 5, 10] · cluster-bootstrap n=1000
 - core_share=8 · kw_collision_ratio=0.2
 
@@ -70,40 +70,46 @@
 | hierarchical | 0.62 | 0.71 | 1.00 | 1.00 | 1050 |
 | hybrid | 0.08 | 0.54 | 1.00 | 1.00 | 1046 |
 
+## task-success (SECONDARY, weak offline agent)
+
+phi(recall_hit, task_success) = **0.2887** — low magnitude means task_success is a genuinely separate signal from recall, not a re-labeling. Absolute task-success values are low because the offline agent is a deliberately weak Jaccard proxy that is NOT told how many tools to pick; only the ordering and the recall→ceiling relationship are meaningful. `task_success`/`hit_rate` per cell are in `summary.json`.
+
 ## Recall cliff
 
-Detected **994** cliff events (gold exists but ranked past the exposed top-k under semantic routing). See `traces.jsonl`.
+Detected **464** cliff events (gold exists but ranked past the exposed top-k under semantic routing). See `traces.jsonl`.
 
 Example traces:
 
 - q#1 [single] semantic_topk@100 k=1: gold ranks [2] · task_success=False · `1d854d0bc44f8e5b`
-- q#1 [single] hierarchical@100 k=1: gold ranks [2] · task_success=False · `03baa2ea3c81bc33`
 - q#3 [single] semantic_topk@100 k=1: gold ranks [2] · task_success=False · `f829f4221f264fa5`
 - q#8 [multi] semantic_topk@100 k=1: gold ranks [2, 3] · task_success=False · `bcba5be8aba1d974`
-- q#8 [multi] hierarchical@100 k=1: gold ranks [2, 3] · task_success=False · `ff19ee495b9020b5`
-- q#8 [multi] hybrid@100 k=1: gold ranks [2, 3] · task_success=False · `28363af73f3f6ee0`
+- q#10 [single] semantic_topk@100 k=1: gold ranks [2] · task_success=False · `7a8a8fb7150030dd`
+- q#11 [single] semantic_topk@100 k=1: gold ranks [2] · task_success=False · `41e621da8e0d6c30`
+- q#17 [single] semantic_topk@100 k=1: gold ranks [2] · task_success=False · `71af26bc0751f212`
 
-## McNemar (task success, paired by query, BH-corrected)
+## McNemar (recall_hit, paired by query, BH-corrected)
 
-`b` = semantic wins / other loses; `c` = other wins / semantic loses. `q` = Benjamini-Hochberg adjusted p across all comparisons.
+Computed on **recall_hit** (the routing question), not the weak task_success. `b` = A hit / B miss; `c` = B hit / A miss. `q` = Benjamini-Hochberg adjusted p. hierarchical-vs-hybrid is genuinely two-sided (keyword collisions).
 
 | size | k | A | B | b | c | χ² | p | q |
 |---|---|---|---|---|---|---|---|---|
-| 100 | 1 | semantic_topk | hybrid | 0 | 31 | 29.0323 | 7.12e-08 | 1.55e-07 |
-| 100 | 1 | semantic_topk | hierarchical | 0 | 16 | 14.0625 | 0.0002 | 0.0003 |
-| 100 | 3 | semantic_topk | hybrid | 0 | 0 | 0.0 | 1.0000 | 1.0000 |
-| 100 | 3 | semantic_topk | hierarchical | 1 | 17 | 12.5 | 0.0004 | 0.0006 |
-| 200 | 1 | semantic_topk | hybrid | 0 | 53 | 51.0189 | 9.15e-13 | 2.20e-12 |
-| 200 | 1 | semantic_topk | hierarchical | 0 | 55 | 53.0182 | 3.30e-13 | 8.81e-13 |
-| 200 | 3 | semantic_topk | hybrid | 0 | 3 | 1.3333 | 0.2482 | 0.3504 |
-| 200 | 3 | semantic_topk | hierarchical | 0 | 56 | 54.0179 | 1.99e-13 | 5.96e-13 |
-| 300 | 1 | semantic_topk | hybrid | 0 | 56 | 54.0179 | 1.99e-13 | 5.96e-13 |
-| 300 | 1 | semantic_topk | hierarchical | 0 | 69 | 67.0145 | 2.70e-16 | 1.62e-15 |
-| 300 | 3 | semantic_topk | hybrid | 0 | 19 | 17.0526 | 3.64e-05 | 7.27e-05 |
-| 300 | 3 | semantic_topk | hierarchical | 0 | 81 | 79.0123 | 6.17e-19 | 4.94e-18 |
-
-## Latency (non-deterministic indicator — NOT a headline metric)
-
-In-process, single-call routing latency with **no load generation**; varies run-to-run and is not part of the reproducibility guarantee. Real numbers need a load harness (roadmap). p50/p95 per cell are in `results.csv`.
+| 100 | 1 | semantic_topk | hybrid | 0 | 31 | 29.0323 | 7.12e-08 | 3.66e-07 |
+| 100 | 1 | semantic_topk | hierarchical | 0 | 16 | 14.0625 | 0.0002 | 0.0006 |
+| 100 | 1 | hierarchical | hybrid | 3 | 18 | 9.3333 | 0.0023 | 0.0062 |
+| 100 | 3 | semantic_topk | hybrid | 0 | 2 | 0.5 | 0.4795 | 0.7193 |
+| 100 | 3 | semantic_topk | hierarchical | 1 | 1 | 0.5 | 0.4795 | 0.7193 |
+| 100 | 3 | hierarchical | hybrid | 0 | 2 | 0.5 | 0.4795 | 0.7193 |
+| 200 | 1 | semantic_topk | hybrid | 0 | 53 | 51.0189 | 9.15e-13 | 8.23e-12 |
+| 200 | 1 | semantic_topk | hierarchical | 0 | 55 | 53.0182 | 3.30e-13 | 3.97e-12 |
+| 200 | 1 | hierarchical | hybrid | 29 | 27 | 0.0179 | 0.8937 | 1.0000 |
+| 200 | 3 | semantic_topk | hybrid | 0 | 19 | 17.0526 | 3.64e-05 | 0.0002 |
+| 200 | 3 | semantic_topk | hierarchical | 0 | 3 | 1.3333 | 0.2482 | 0.4703 |
+| 200 | 3 | hierarchical | hybrid | 0 | 16 | 14.0625 | 0.0002 | 0.0006 |
+| 300 | 1 | semantic_topk | hybrid | 0 | 56 | 54.0179 | 1.99e-13 | 3.58e-12 |
+| 300 | 1 | semantic_topk | hierarchical | 0 | 69 | 67.0145 | 2.70e-16 | 9.70e-15 |
+| 300 | 1 | hierarchical | hybrid | 34 | 21 | 2.6182 | 0.1056 | 0.2377 |
+| 300 | 3 | semantic_topk | hybrid | 0 | 52 | 50.0192 | 1.52e-12 | 1.10e-11 |
+| 300 | 3 | semantic_topk | hierarchical | 0 | 13 | 11.0769 | 0.0009 | 0.0026 |
+| 300 | 3 | hierarchical | hybrid | 5 | 44 | 29.4694 | 5.68e-08 | 3.41e-07 |
 
 ![recall cliff](recall_cliff.svg)

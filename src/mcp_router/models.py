@@ -1,5 +1,4 @@
-"""Core domain models. Plain dataclasses (stdlib) — no ORM required for the
-offline bench; the pgvector backend maps these to tables 1:1."""
+"""Core domain models. Plain dataclasses (stdlib) — no ORM required."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -47,9 +46,6 @@ class Catalog:
     def by_id(self) -> dict[int, Tool]:
         return {t.id: t for t in self.tools}
 
-    def group_of(self, tool_id: int) -> str:
-        return self.by_id()[tool_id].group
-
 
 @dataclass
 class RouteOutcome:
@@ -63,22 +59,7 @@ class RouteOutcome:
     recall_fraction: float                   # |gold ∩ exposed| / |gold|  (fractional recall@k)
     difficulty: str                          # single | multi | ambiguous (for stratification)
     cluster: int                             # gold-tool id used as bootstrap cluster key
-    latency_ms: float
     # task-execution (ReAct agent) outcome:
     selected_tool_ids: List[int] = field(default_factory=list)
     task_success: bool = False
     trace_id: str = ""
-
-
-@dataclass
-class BenchRun:
-    """Reproducibility envelope: every knob that shaped the numbers."""
-    git_sha: str
-    seed: int
-    embed_model: str
-    llm_model_id: str
-    vector_backend: str
-    config: dict
-    strategy: str
-    k: int
-    catalog_size: int

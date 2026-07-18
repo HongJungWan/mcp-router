@@ -4,7 +4,7 @@ Two embedding geometries are provided so the recall cliff can be shown to be a
 property of *near-duplicate crowding*, not an artifact of one embedding:
 
 * MockEmbedder      hashed bag-of-words (token-additive; cosine ~ shared tokens)
-* MockCharEmbedder  hashed char-trigrams (a different geometry entirely)
+* MockCharEmbedder  hashed char-trigrams (subword-smoothed; still overlap-correlated)
 
 Independence (the anti-"closed-loop" fix): the three actors that used to share
 one `cos + 2·lex` formula are now deliberately DIFFERENT functions —
@@ -45,8 +45,11 @@ class MockEmbedder:
 
 
 class MockCharEmbedder:
-    """Hashed character-trigram embedding — a geometry NOT built on token overlap,
-    used to cross-check that the recall cliff is not a bag-of-words artifact."""
+    """Hashed character-trigram embedding: a subword-smoothed variant whose cosine
+    still correlates strongly with token overlap (empirically close to BoW). It is
+    a cheap robustness check that the cliff is not an artifact of the *exact* BoW
+    tokenizer — it is NOT proof of independence from lexical overlap and NOT a
+    semantic embedding. Real dense-embedding validation (bge-small) is still owed."""
     name = "mock-chartrigram-v1"
 
     def __init__(self, dim: Optional[int] = None):
@@ -74,6 +77,9 @@ class MockLLM:
     so task-success is an independent signal layered on top of recall.
     """
     model_id = "mock-jaccard-agent-v1"
+    # A candidate is selected if within this fraction of the top score. The agent
+    # thus decides ITS OWN count (up to the budget n) — it is never told |gold|.
+    _GAP = 0.10
 
     def __init__(self, embedder=None):
         self.embedder = embedder  # kept for API symmetry; unused for selection
@@ -88,4 +94,7 @@ class MockLLM:
             noise = (stable_hash(f"sel|{query}|{tool.id}") % 1000) / 1e6
             scored.append((tool.id, base + noise))
         scored.sort(key=lambda t: (-t[1], t[0]))
-        return [tid for tid, _ in scored[:n]]
+        top = scored[0][1]
+        thresh = top - self._GAP * (abs(top) + 1e-9)
+        picked = [tid for tid, s in scored[:n] if s >= thresh]
+        return picked or [scored[0][0]]

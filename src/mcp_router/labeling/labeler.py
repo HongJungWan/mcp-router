@@ -8,8 +8,9 @@ check on the labeling mechanism, NOT evidence that the labels match human
 judgement. Real inter-annotator agreement would require a human pass (roadmap).
 
 Two independence properties vs. the router/agent:
-  * the labeler does NOT receive the gold cardinality (no `n = len(gold)` leak);
-    it decides how many tools to label via a score-gap threshold.
+  * the labeler is not told the gold cardinality; it decides how many tools to
+    label via a score-gap threshold (offline path). The opt-in real-LLM path uses
+    a small fixed budget (also not len(gold)) — see `_LABEL_BUDGET`.
   * it uses semantic+lexical scoring (a different signal than the Jaccard agent).
 """
 from __future__ import annotations
@@ -26,6 +27,8 @@ from .kappa import agreement, cohen_kappa
 # score. This lets the labeler choose its own cardinality (1..few) instead of
 # being told the true count.
 _REL_GAP = 0.15
+# Fixed budget for the opt-in real-LLM path (NOT len(gold) — no cardinality leak).
+_LABEL_BUDGET = 3
 
 
 def _label_predict(query: str, tools: list, embedder) -> List[int]:
@@ -60,7 +63,7 @@ def label_quality_report(catalog: Catalog, queries: List[Query], llm, cfg=DEFAUL
         if embedder is not None:
             pred = set(_label_predict(q.text, all_tools, embedder))
         else:  # pragma: no cover - real LLM labeler path (unrun)
-            pred = set(llm.choose_tools(q.text, all_tools, max(1, len(true_gold))))
+            pred = set(llm.choose_tools(q.text, all_tools, _LABEL_BUDGET))
         # label set = truth ∪ prediction ∪ sampled distractor negatives (varied
         # count so kappa's prevalence sensitivity is exercised, not fixed).
         r = rng(cfg.seed, "labelneg", q.id)

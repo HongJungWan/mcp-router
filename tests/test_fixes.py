@@ -75,6 +75,26 @@ class LabelerHonestyTest(unittest.TestCase):
         self.assertTrue(0.0 <= rep["self_consistency_kappa"] <= 1.0)
 
 
+class ReportTest(unittest.TestCase):
+    def test_write_all_produces_expected_outputs(self):
+        import tempfile, csv, json, os
+        from mcp_router.bench.runner import run_benchmark
+        from mcp_router.bench.report import write_all
+        cfg = BenchConfig(); cfg.n_queries = 24; cfg.catalog_sizes = [100, 300]; cfg.bootstrap_n = 50
+        art = run_benchmark(cfg)
+        d = tempfile.mkdtemp()
+        paths = write_all(art, d)
+        with open(paths["csv"], encoding="utf-8") as f:
+            header = next(csv.reader(f))
+        for col in ["catalog_size", "strategy", "k", "recall_at_k", "hit_rate", "task_success"]:
+            self.assertIn(col, header)
+        s = json.load(open(paths["json"], encoding="utf-8"))
+        for key in ["cells", "cells_by_difficulty", "mcnemar", "label_report",
+                    "phi_recall_success", "n_cliff_events"]:
+            self.assertIn(key, s)
+        self.assertTrue(os.path.exists(paths["svg"]))
+
+
 class StatsTest(unittest.TestCase):
     def test_bh_monotone_and_bounded(self):
         q = benjamini_hochberg([0.001, 0.02, 0.04, 0.5])
