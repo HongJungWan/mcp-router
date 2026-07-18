@@ -1,0 +1,51 @@
+# docker-compose.yml — mcp-router
+#
+# NOTE: The default `make bench` needs NO Docker. It runs the offline,
+# pure-stdlib default path with the in-memory vector backend and requires
+# no services, no API keys, and no network. This compose file exists ONLY
+# for the pgvector / production path (real embeddings + a real Postgres
+# vector store). Use it when you want to exercise `--vector pgvector`.
+#
+# Quick start (pgvector path):
+#   docker compose up --build
+# This brings up Postgres (with the `vector` extension), waits until it is
+# healthy, then runs the benchmark inside the `bench` service and writes
+# results to ./artifacts on the host.
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: mcp_router
+      POSTGRES_PASSWORD: mcp_router
+      POSTGRES_DB: mcp_router
+    ports:
+      - "5432:5432"
+    volumes:
+      # Runs on first init: CREATE EXTENSION IF NOT EXISTS vector;
+      - ./deploy/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcp_router -d mcp_router"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  bench:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Point the pgvector backend at the compose Postgres service.
+      DATABASE_URL: postgresql://mcp_router:mcp_router@postgres:5432/mcp_router
+    command: ["make", "bench"]
+    volumes:
+      # Benchmark outputs land here on the host.
+      - ./artifacts:/app/artifacts
+
+volumes:
+  pgdata:

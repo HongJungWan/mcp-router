@@ -1,0 +1,26 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+
+# Packaging / build artifacts
+*.egg-info/
+build/
+dist/
+
+# Environment / secrets
+.env
+
+# Benchmark output directories
+artifacts/
+artifacts2/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+
+# NOTE: cassettes/ is intentionally tracked (recorded VCR fixtures for
+# replaying real-mode runs offline). Do NOT ignore it.

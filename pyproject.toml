@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-router"
+version = "0.1.0"
+description = "MCP Gateway tool-routing benchmark"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+claude = ["anthropic"]
+local = ["sentence-transformers"]
+pg = ["psycopg[binary]", "pgvector"]
+agent = ["langgraph", "langchain-core", "langchain-anthropic"]
+otel = ["opentelemetry-sdk", "opentelemetry-exporter-otlp"]
+viz = []
+dev = []
+
+[project.scripts]
+mcp-router = "mcp_router.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
