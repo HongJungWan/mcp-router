@@ -11,6 +11,7 @@ help:
 	@echo "  install    - Install the package in editable mode (pip install -e .)"
 	@echo "  bench      - Run the benchmark on the offline stdlib default path"
 	@echo "  sweep      - core_share sensitivity sweep (cliff is not a constant artifact)"
+	@echo "  similarity - measure real MCP tool pairwise similarity vs the synthetic catalog (needs .[local])"
 	@echo "  bench-real - Run with real providers (bge-small embed, claude llm); requires extras + API key"
 	@echo "  test       - Run the unittest suite (20 cases)"
 	@echo "  lint       - Byte-compile all sources under src"
@@ -24,6 +25,9 @@ bench:
 
 sweep:
 	$(RUN_ENV) $(PYTHON) -m mcp_router bench sweep --shares 6,7,8,9,10
+
+similarity:
+	$(RUN_ENV) $(PYTHON) scripts/pairwise_similarity.py
 
 bench-real:
 	$(RUN_ENV) $(PYTHON) -m mcp_router bench run --out artifacts-real --embed local --llm claude
