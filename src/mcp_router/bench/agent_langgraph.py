@@ -32,7 +32,10 @@ class LangGraphReActAgent:
         from langgraph.prebuilt import create_react_agent  # noqa: F401
 
         self.llm = llm
-        self.model_id = "claude-sonnet-5"
+        # Use the injected LLM's model id when provided so the agent and the
+        # ClaudeLLM labeler/router share one model config (and one VCR cache),
+        # instead of silently hardcoding a second model.
+        self.model_id = getattr(llm, "model_id", None) or "claude-sonnet-5"
         self._ChatAnthropic = ChatAnthropic
         self._create_react_agent = create_react_agent
 

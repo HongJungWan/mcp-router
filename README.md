@@ -3,169 +3,183 @@
 A benchmark harness that answers one question with reproducible data:
 
 > When an agent's MCP tool catalog grows to hundreds of tools, **does exposing
-> only a semantic top-k of them silently drop the right tool — and does that
-> cause the agent to fail the task?**
+> only a semantic top-k of them silently drop the right tool?**
 
-Short answer, measured here: **yes, badly** — and a hybrid (vector + lexical)
-router recovers almost all of the lost recall **at ~1% of the token cost** of
-exposing everything.
+Short answer, measured here: **yes — recall@1 collapses from ~0.70 to ~0.13 as
+the catalog grows 100→300**, and a hybrid (vector + lexical) router recovers most
+of the lost recall. Task-success and cost tell a second, more nuanced story
+(below): exposing *everything* is worse on almost every axis except raw recall.
 
-> Status: **M3 (the benchmark)**. This is the "heart" milestone of a larger MCP
-> Gateway project — the part that turns *"tool sprawl hurts"* from a claim into a
-> chart. The gateway serving path is a documented roadmap item below.
+> Status: **M3 (the offline benchmark)** — the evaluation half of a larger MCP
+> Gateway project. The live serving path (MCP server/client federation, RBAC,
+> circuit breakers) is a documented roadmap item, **not** built here. Every
+> headline number below is produced by the offline, deterministic mock path;
+> the real Claude / pgvector / bge adapters are wired but **have not been run**
+> (no cassettes committed). See "What is real vs mock" before drawing conclusions.
 
 ---
 
-## TL;DR results (seed=1234, 180 labeled queries, catalog staircase 100→200→300)
+## The recall cliff (primary result — the clean one)
 
-**The recall cliff.** `semantic_topk` recall@1 as the distractor pool grows:
+`semantic_topk` fractional recall@1 as the near-duplicate distractor pool grows
+(seed=1234, 180 labeled queries, cluster-bootstrap 95% CI):
 
-| catalog size | semantic_topk recall@1 | 95% CI (bootstrap) |
+| catalog size | semantic_topk recall@1 | 95% CI (gold-cluster bootstrap) |
 |---|---|---|
-| 100 | **0.556** | 0.483–0.628 |
-| 200 | **0.222** | 0.161–0.289 |
-| 300 | **0.167** | 0.117–0.228 |
+| 100 | **0.705** | 0.512–0.871 |
+| 200 | **0.278** | 0.113–0.463 |
+| 300 | **0.128** | 0.017–0.268 |
 
-**Recovery at catalog=300** (recall@k, and task success of a ReAct agent that
-sees *only* the exposed tools):
+**Fractional recall@k at catalog=300** (|gold ∩ top-k| / |gold|):
 
-| strategy | recall@1 | recall@3 | recall@5 | task-success@3 | tokens@3 (p95) |
-|---|---|---|---|---|---|
-| passthrough (expose all) | 1.00 | 1.00 | 1.00 | 0.87 | **25,800** |
-| semantic_topk | 0.17 | 0.60 | 0.84 | 0.53 | 258 |
-| hierarchical (top-2 groups) | 0.52 | 0.66 | 0.86 | 0.64 | 258 |
-| **hybrid (vector+lexical)** | **0.77** | **0.93** | **0.98** | **0.87** | **258** |
+| strategy | recall@1 | recall@3 | recall@5 | tokens@3 (p95, est.) |
+|---|---|---|---|---|
+| passthrough (expose all) | 1.00 | 1.00 | 1.00 | **31,084** |
+| semantic_topk | 0.13 | 0.62 | 0.93 | 316 |
+| hierarchical (top-2 groups) | 0.52 | 0.70 | 0.95 | 316 |
+| **hybrid (vector+lexical)** | 0.45 | **0.92** | **1.00** | 316 |
 
-**Headline:** hybrid reaches the *same task success as exposing every tool
-(0.87) while sending ~1% of the tokens* (258 vs 25,800). McNemar on paired
-per-query task success (size 300, k=3): hybrid beats semantic_topk on **60**
-queries and loses on **0** (χ²≈58, p<1e-5) — a statistically significant win,
-not noise.
+Hybrid recovers recall@3 from 0.62 → **0.92**. Note hybrid is *not* uniformly
+best: at k=1 hierarchical (0.52) beats hybrid (0.45), because ~20% of distractors
+deliberately **collide on the gold keyword** — so the lexical signal no longer
+uniquely pins gold and hybrid can lose. (This is intentional; see below.)
 
-**Label quality:** the query→gold labels are auto-generated then checked against
-a 50-query human-verified subset. **Cohen's κ = 0.89** (high, but < 1 — ambiguous
-queries genuinely fool auto-labeling), reported so you can trust the ground truth.
+## The second axis: task-success ≠ recall (the nuanced one)
+
+A **deliberately weak, decoupled** ReAct agent (Jaccard over tool descriptions —
+a *different* signal than the router; see "closed-loop" note) then picks tools
+from only the exposed set. Task-success@3 at catalog=300:
+
+| strategy | recall@3 | task-success@3 | tokens@3 |
+|---|---|---|---|
+| passthrough | 1.00 | **0.05** | 31,084 |
+| semantic_topk | 0.62 | 0.05 | 316 |
+| hierarchical | 0.70 | **0.50** | 316 |
+| hybrid | 0.92 | 0.16 | 316 |
+
+The interesting finding: **exposing every tool (passthrough) gives perfect recall
+but the worst task-success (0.05)** — 300 look-alike tools overwhelm selection —
+*and* costs ~100× the tokens. Recall and selection-accuracy are different axes:
+the highest-recall strategy (hybrid) is not the highest task-success one
+(hierarchical, whose tight per-group exposed set is easiest to choose from).
+
+> **Read this honestly.** The absolute task-success numbers are low because the
+> offline agent is a weak Jaccard proxy on purpose. What is meaningful is the
+> *relative ordering* and the structural fact that a recall miss forces a failure
+> (the agent never sees a dropped tool). Real agent quality is the opt-in Claude
+> path, which has not been run here.
+
+McNemar on paired per-query task-success (BH-corrected across the family):
+
+| size | k | A | B | b | c | χ² | p | q |
+|---|---|---|---|---|---|---|---|---|
+| 300 | 1 | semantic_topk | hierarchical | 0 | 69 | 67.0 | 2.7e-16 | 1.6e-15 |
+| 300 | 3 | semantic_topk | hierarchical | 0 | 81 | 79.0 | 6.2e-19 | 4.9e-18 |
+| 300 | 3 | semantic_topk | hybrid | 0 | 19 | 17.1 | 3.6e-05 | 7.3e-05 |
+
+`b=0` (semantic never wins where the other loses) is now an **empirical** result
+of a decoupled agent, not a construction identity — previously the agent shared
+the router's formula, which made b=0 tautological.
 
 ![recall cliff](docs/recall_cliff.svg)
 
-> Chart + a full sample run are committed under [`docs/`](docs/) (`sample-report.md`,
-> `sample-results.csv`); regenerate everything yourself with `make bench`.
+> Chart + a full sample run are committed under [`docs/`](docs/); regenerate
+> everything with `make bench`. Per-difficulty and hit-rate tables are in
+> `summary.json` (`cells_by_difficulty`).
 
 ---
 
-## Why this is a real experiment, not a scripted demo
+## Why the cliff is real, and how far it generalizes
 
-The cliff is a **property of the geometry**, reproduced from first principles:
+- **Nested staircase**: `catalog(100) ⊂ catalog(200) ⊂ catalog(300)`. Same gold
+  tools at every size; only the distractor pool grows.
+- A query shares `core_share` (=8) tokens + a rare keyword with its gold tool.
+  Each distractor shares `Xd ~ Uniform{4..len(query)}` tokens; under pure semantic
+  similarity a distractor out-ranks gold once it shares more. Distractors are
+  round-robin assigned to the queried tools, so each gold accrues ~1 distractor at
+  N=100 and ~8 at N=300 → gold falls out of a small top-k → **recall collapses.**
 
-- The catalog is a **nested staircase**: `catalog(100) ⊂ catalog(200) ⊂ catalog(300)`.
-  The same gold tools exist at every size; only the near-duplicate distractor
-  pool grows.
-- A query shares 8 tokens + a rare keyword with its gold tool (overlap 9). Each
-  distractor shares `Xd ~ Uniform{4..12}` tokens and **no keyword**; under pure
-  semantic similarity a distractor out-ranks gold iff it shares ≥10. Distractors
-  are round-robin assigned to the queried tools, so each gold accrues ~1
-  distractor at N=100 and ~8 at N=300 → the chance that ≥k of them out-rank gold
-  rises → gold falls out of the exposed top-k → **recall collapses.**
-- The keyword is rare (query + only gold). Lexical/BM25 matching pins it, which
-  is exactly why the **hybrid** strategy recovers the recall semantic-topk loses.
-- **A recall miss becomes a task failure**: the ReAct agent only ever sees the
-  exposed tools. If routing dropped the gold tool, the agent literally cannot
-  select it. That causal chain is recorded per query in `artifacts/traces.jsonl`.
+**Is the cliff just an artifact of `core_share=8` or of bag-of-words?** Checked:
 
-### When NOT to use semantic top-k (the honest part)
+- `make sweep` varies `core_share` 6→10; the recall@1 cliff-drop stays **−0.32 to
+  −0.57** across all of them (not a single hand-picked constant).
+- `--embed mock_char` re-runs under a **char-trigram geometry** (not token-additive);
+  the cliff survives (recall@1 0.89 → 0.38 at core_share=8).
 
-Small k is a **token optimization that trades away recall**, and the trade is
-catastrophic exactly when the catalog is large and full of look-alike tools —
-which is when you reach for a gateway in the first place. If your tools are few
-or well-separated, plain top-k is fine. If they are many and near-duplicate,
-top-k drops the right tool and *no amount of prompt tuning downstream fixes a
-tool that was never exposed.* Use hybrid (or raise k and pay the tokens). This
-harness exists to tell you **which regime you're in, with numbers.**
+**Honest limit:** this is still a *synthetic* catalog with *mock* embeddings. It
+demonstrates the mechanism from first principles and shows it is robust to two
+knobs — it does **not** prove the slope you'd see on `bge-small` or a real MCP
+server corpus. That requires the `.[local]` / real-harvest paths (roadmap).
+
+### When NOT to use semantic top-k
+
+Small k trades recall for tokens; the trade is worst exactly when the catalog is
+large and full of look-alikes — when you'd reach for a gateway. Few or
+well-separated tools → plain top-k is fine. Many near-duplicate tools → top-k
+drops the right one, and no downstream prompting recovers a tool that was never
+exposed. Use hybrid, or raise k and pay the tokens.
 
 ---
+
+## What is real vs mock (read before trusting a number)
+
+| concern | offline default (used for ALL numbers here) | opt-in adapter (wired, **NOT run**) |
+|---|---|---|
+| embeddings | hashed bag-of-words / char-trigram (deterministic) | `bge-small-en-v1.5` (`.[local]`) |
+| agent / LLM | weak Jaccard mock (decoupled from router) | Claude tool-use + LangGraph (`.[agent]`) |
+| labeler | semantic+lexical, threshold cardinality | same, via Claude (`.[claude]`) |
+| vector index | pure-Python cosine | pgvector HNSW (`.[pg]`) |
+| token cost | JSON-schema chars/4 **heuristic** | real tokenizer (roadmap) |
+
+- **No human labels exist.** The label report is *self-consistency* of the auto
+  labeler vs the synthesized ground truth (κ ≈ 0.40), a sanity check on the
+  labeling mechanism — **not** human-verified label quality, and not a selling
+  point. See `labeling/labeler.py`.
+- **Latency** in `results.csv` is an in-process, single-call, no-load indicator —
+  non-deterministic and NOT part of the reproducibility guarantee.
+- Token cost is a chars/4 heuristic; the "~100× fewer tokens than passthrough"
+  ratio (3-of-N tools) is robust to the constant, the absolute count is not.
 
 ## Quickstart (zero dependencies, offline, deterministic)
 
-The default path is **pure Python standard library** — no API keys, no network,
-no `pip install`. Same seed → byte-identical `recall@k`, task success, CIs, and
-κ across machines (only wall-clock latency varies, and it's labeled as a measured
-indicator, not a reproducible metric).
+Pure Python stdlib — no API keys, no network, no `pip install`. Same seed →
+byte-identical recall, task-success, CIs, and κ (only wall-clock latency varies).
 
 ```bash
-make bench          # == PYTHONPATH=src python -m mcp_router bench run --out artifacts
-make test           # 14 unittest cases incl. the load-bearing cliff assertions
+make bench     # PYTHONPATH=src python -m mcp_router bench run --out artifacts
+make test      # 20 unittest cases incl. cliff, decoupling, and geometry checks
+python -m mcp_router bench sweep --shares 6,7,8,9,10   # core_share sensitivity
+python -m mcp_router bench sweep --embed mock_char     # different geometry
 ```
-
-Artifacts land in `artifacts/`: `report.md`, `results.csv`, `summary.json`,
-`recall_cliff.svg`, and `traces.jsonl` (every routing decision + the gold tool's
-rank, so you can open the exact query where top-k dropped it).
-
----
-
-## Architecture
-
-```
-query ─▶ RoutingContext(catalog embedded into a VectorIndex + group vectors)
-          │
-          ├─ passthrough      expose all              (recall ceiling / token floor)
-          ├─ semantic_topk    global vector top-k     (loses recall as catalog grows)
-          ├─ hierarchical     top-2 groups → top-k    (filters cross-group distractors)
-          └─ hybrid           vector + lexical kw     (recovers recall the keyword pins)
-                              │
-                              ▼
-          ReAct agent sees ONLY the exposed tools ─▶ task success
-                              │
-          Tracer records candidate/exposed/gold-rank per query ─▶ traces.jsonl
-```
-
-Everything is behind an interface with an offline default and an opt-in
-production adapter:
-
-| concern | offline default (stdlib) | production adapter (opt-in) |
-|---|---|---|
-| embeddings | hashed bag-of-words | `bge-small-en-v1.5` (`.[local]`) |
-| LLM / agent | deterministic mock ReAct | Claude tool-use + LangGraph (`.[claude]`,`.[agent]`) |
-| vector index | pure-Python cosine | pgvector HNSW in Postgres (`.[pg]`) |
-| tracing | JSONL span log | OpenTelemetry / OTLP (`.[otel]`) |
-
-Production models (when you switch adapters in): benchmark runner
-`claude-sonnet-5`, cheap labeling `claude-haiku-4-5-20251001`. Real LLM calls are
-VCR-cached to keep runs deterministic and cheap.
-
-```bash
-docker compose up -d postgres      # pgvector
-make bench-real                    # --embed local --llm claude --vector pgvector
-```
-
----
 
 ## Reproducibility envelope
 
-Every run stamps `git_sha`, `seed`, `embed_model`, `llm_model_id`,
-`vector_backend`, and the full config into `summary.json` and every `bench_run`.
-CIs are seeded bootstrap (1000 resamples); strategy comparisons use McNemar.
-A CI job can gate merges on `recall@k`/`task_success` regressions (roadmap).
+Every run stamps `git_sha`, `seed`, `embed_model`, `llm_model_id`, `core_share`,
+`kw_collision_ratio`, and the full config into `summary.json`. CIs use a
+**gold-cluster** bootstrap (the 180 queries cluster over 30 gold tools, so an iid
+bootstrap would understate them); strategy comparisons use McNemar with
+Benjamini-Hochberg correction.
 
 ## Roadmap (deliberately cut from M3 to stay solo-shippable)
 
-- Gateway **serving** path (this M3 is the offline evaluation half): live MCP
-  server/client federation, YAML config, tenant RBAC, circuit breakers.
-- Real MCP server harvesting (filesystem/github/slack/postgres/brave-search)
-  alongside the synthetic staircase.
-- CI recall-regression gate; Grafana eval dashboard from OTel; Terraform (ECS).
-- GraphRAG / knowledge-graph routing as a 5th strategy.
+- Live gateway **serving** path (federation, RBAC, circuit breakers) — this is
+  the evaluation half only.
+- Run the **real** adapters: bge-small embeddings, Claude tool-use agent (commit
+  cassettes), pgvector; replace the heuristic token count with a real tokenizer.
+- Real MCP server harvesting alongside the synthetic staircase.
+- CI recall-regression gate; GraphRAG routing as a 5th strategy.
 
 ## Layout
 
 ```
 src/mcp_router/
-  catalog/     synthetic staircase catalog + query generation
-  routing/     the four strategies + RoutingContext
-  providers/   embedding + LLM (mock default; claude/local opt-in)
+  catalog/     staircase catalog (keyword-collision distractors) + query gen + Spec
+  routing/     four strategies + RoutingContext
+  providers/   embed (mock bow / mock_char / local) + llm (mock jaccard / claude)
   vectorstore/ cosine index (memory default; pgvector opt-in)
-  labeling/    LLM labeler + Cohen's kappa
-  bench/       ReAct agent, metrics (recall/success/bootstrap/McNemar), runner, report
-  tracing.py   span recorder (JSONL; OTel opt-in)
-  cli.py       `python -m mcp_router bench run`
-tests/         unittest (cliff must be real; hybrid must recover)
+  labeling/    self-consistency labeler + Cohen's kappa
+  bench/       decoupled ReAct agent, metrics (fractional recall, cluster bootstrap,
+               McNemar+BH), runner, report
+  tracing.py · cli.py (bench run | bench sweep)
+tests/         20 unittest cases
 ```

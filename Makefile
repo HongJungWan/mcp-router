@@ -3,15 +3,16 @@
 PYTHON ?= python
 RUN_ENV := PYTHONPATH=src PYTHONIOENCODING=utf-8
 
-.PHONY: help install bench bench-real test lint clean
+.PHONY: help install bench sweep bench-real test lint clean
 
 help:
 	@echo "Available targets:"
 	@echo "  help       - Show this help message (default)"
 	@echo "  install    - Install the package in editable mode (pip install -e .)"
 	@echo "  bench      - Run the benchmark on the offline stdlib default path"
+	@echo "  sweep      - core_share sensitivity sweep (cliff is not a constant artifact)"
 	@echo "  bench-real - Run the benchmark with real providers (local embed, claude llm, pgvector); requires extras + API keys"
-	@echo "  test       - Run the unittest suite"
+	@echo "  test       - Run the unittest suite (20 cases)"
 	@echo "  lint       - Byte-compile all sources under src"
 	@echo "  clean      - Remove artifacts and __pycache__ directories"
 
@@ -20,6 +21,9 @@ install:
 
 bench:
 	$(RUN_ENV) $(PYTHON) -m mcp_router bench run --out artifacts
+
+sweep:
+	$(RUN_ENV) $(PYTHON) -m mcp_router bench sweep --shares 6,7,8,9,10
 
 bench-real:
 	$(RUN_ENV) $(PYTHON) -m mcp_router bench run --out artifacts --embed local --llm claude --vector pgvector

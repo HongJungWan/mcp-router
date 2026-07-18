@@ -24,8 +24,15 @@ STRATEGIES: List[str] = ["passthrough", "semantic_topk", "hierarchical", "hybrid
 # Bootstrap resamples for confidence intervals.
 BOOTSTRAP_N = int(os.environ.get("MCPR_BOOTSTRAP_N", "1000"))
 
-# Size of the human-verified golden subset used for the label-quality (kappa) report.
-HUMAN_VERIFIED_N = 50
+# Size of the label self-consistency subset (NOT human-verified; see labeler.py).
+SELF_CHECK_N = 50
+
+# Gold tokens shared with the query (controls the cliff geometry; sensitivity-swept).
+CORE_SHARE = int(os.environ.get("MCPR_CORE_SHARE", "8"))
+
+# Fraction of distractors that COLLIDE on the gold's rare keyword, so the hybrid
+# router can genuinely lose (breaks the degenerate McNemar b=0).
+KW_COLLISION_RATIO = float(os.environ.get("MCPR_KW_COLLISION", "0.2"))
 
 
 @dataclass
@@ -37,8 +44,11 @@ class BenchConfig:
     k_values: List[int] = field(default_factory=lambda: list(K_VALUES))
     strategies: List[str] = field(default_factory=lambda: list(STRATEGIES))
     bootstrap_n: int = BOOTSTRAP_N
-    human_verified_n: int = HUMAN_VERIFIED_N
-    embed_provider: str = "mock"       # mock | local | openai
+    self_check_n: int = SELF_CHECK_N
+    core_share: int = CORE_SHARE
+    kw_collision_ratio: float = KW_COLLISION_RATIO
+    lex_weight: float = 2.0
+    embed_provider: str = "mock"       # mock | mock_char | local
     llm_provider: str = "mock"         # mock | claude
     vector_backend: str = "memory"     # memory | pgvector
     n_queries: int = 180               # synthetic labeled queries

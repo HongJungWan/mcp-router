@@ -26,6 +26,9 @@ def get_embedder(kind: str = "mock", dim: int | None = None) -> EmbeddingProvide
     if kind == "mock":
         from .mock import MockEmbedder
         return MockEmbedder(dim=dim)
+    if kind == "mock_char":                       # different geometry, robustness check
+        from .mock import MockCharEmbedder
+        return MockCharEmbedder(dim=dim)
     if kind == "local":
         from .local_embed import LocalEmbed
         return LocalEmbed()

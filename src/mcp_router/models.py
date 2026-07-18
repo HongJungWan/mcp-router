@@ -59,7 +59,10 @@ class RouteOutcome:
     k: int
     exposed_tool_ids: List[int]
     exposed_token_cost: int
-    recall_hit: bool                         # all gold tools present in exposed set
+    recall_hit: bool                         # ALL gold tools present (set-cover / hit-rate)
+    recall_fraction: float                   # |gold ∩ exposed| / |gold|  (fractional recall@k)
+    difficulty: str                          # single | multi | ambiguous (for stratification)
+    cluster: int                             # gold-tool id used as bootstrap cluster key
     latency_ms: float
     # task-execution (ReAct agent) outcome:
     selected_tool_ids: List[int] = field(default_factory=list)

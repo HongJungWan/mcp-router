@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="840" height="470" viewBox="0 0 840 470" font-family="Segoe UI, Pretendard, sans-serif">
 <rect width="840" height="470" fill="#F0EEE6"/>
-<text x="70" y="30" font-size="18" font-weight="700" fill="#29261B">Recall@k — semantic-topk cliff vs recovery</text>
+<text x="70" y="30" font-size="18" font-weight="700" fill="#29261B">Fractional recall@k - semantic-topk cliff vs recovery</text>
 <line x1="70" y1="414.0" x2="640" y2="414.0" stroke="#DED7C9"/>
 <text x="60" y="418.0" font-size="12" text-anchor="end" fill="#8C8575">0.0</text>
 <line x1="70" y1="342.4" x2="640" y2="342.4" stroke="#DED7C9"/>
@@ -18,39 +18,39 @@
 <text x="450.0" y="436" font-size="12" text-anchor="middle" fill="#8C8575">k=5</text>
 <text x="640.0" y="436" font-size="12" text-anchor="middle" fill="#8C8575">k=10</text>
 <text x="355" y="458" font-size="13" text-anchor="middle" fill="#29261B">exposed top-k</text>
-<text x="18" y="235" font-size="13" text-anchor="middle" fill="#29261B" transform="rotate(-90 18 235)">recall@k</text>
-<path d="M70.0,215.1 L260.0,63.9 L450.0,56.0 L640.0,56.0" fill="none" stroke="#C6714F" stroke-width="2.5"/>
-<circle cx="70.0" cy="215.1" r="3.5" fill="#C6714F"/>
-<circle cx="260.0" cy="63.9" r="3.5" fill="#C6714F"/>
+<text x="18" y="235" font-size="13" text-anchor="middle" fill="#29261B" transform="rotate(-90 18 235)">fractional recall@k</text>
+<path d="M70.0,161.8 L260.0,58.0 L450.0,56.0 L640.0,56.0" fill="none" stroke="#C6714F" stroke-width="2.5"/>
+<circle cx="70.0" cy="161.8" r="3.5" fill="#C6714F"/>
+<circle cx="260.0" cy="58.0" r="3.5" fill="#C6714F"/>
 <circle cx="450.0" cy="56.0" r="3.5" fill="#C6714F"/>
 <circle cx="640.0" cy="56.0" r="3.5" fill="#C6714F"/>
 <line x1="656" y1="64" x2="680" y2="64" stroke="#C6714F" stroke-width="2.5"/>
 <text x="686" y="68" font-size="12" fill="#29261B">semantic_topk @ 100</text>
-<path d="M70.0,334.5 L260.0,117.6 L450.0,71.9 L640.0,56.0" fill="none" stroke="#D4A27F" stroke-width="2.5"/>
-<circle cx="70.0" cy="334.5" r="3.5" fill="#D4A27F"/>
-<circle cx="260.0" cy="117.6" r="3.5" fill="#D4A27F"/>
-<circle cx="450.0" cy="71.9" r="3.5" fill="#D4A27F"/>
+<path d="M70.0,314.5 L260.0,103.7 L450.0,61.3 L640.0,56.0" fill="none" stroke="#D4A27F" stroke-width="2.5"/>
+<circle cx="70.0" cy="314.5" r="3.5" fill="#D4A27F"/>
+<circle cx="260.0" cy="103.7" r="3.5" fill="#D4A27F"/>
+<circle cx="450.0" cy="61.3" r="3.5" fill="#D4A27F"/>
 <circle cx="640.0" cy="56.0" r="3.5" fill="#D4A27F"/>
 <line x1="656" y1="86" x2="680" y2="86" stroke="#D4A27F" stroke-width="2.5"/>
 <text x="686" y="90" font-size="12" fill="#29261B">semantic_topk @ 200</text>
-<path d="M70.0,354.3 L260.0,199.2 L450.0,111.7 L640.0,58.0" fill="none" stroke="#B5654A" stroke-width="2.5"/>
-<circle cx="70.0" cy="354.3" r="3.5" fill="#B5654A"/>
-<circle cx="260.0" cy="199.2" r="3.5" fill="#B5654A"/>
-<circle cx="450.0" cy="111.7" r="3.5" fill="#B5654A"/>
-<circle cx="640.0" cy="58.0" r="3.5" fill="#B5654A"/>
+<path d="M70.0,368.2 L260.0,192.3 L450.0,82.8 L640.0,57.0" fill="none" stroke="#B5654A" stroke-width="2.5"/>
+<circle cx="70.0" cy="368.2" r="3.5" fill="#B5654A"/>
+<circle cx="260.0" cy="192.3" r="3.5" fill="#B5654A"/>
+<circle cx="450.0" cy="82.8" r="3.5" fill="#B5654A"/>
+<circle cx="640.0" cy="57.0" r="3.5" fill="#B5654A"/>
 <line x1="656" y1="108" x2="680" y2="108" stroke="#B5654A" stroke-width="2.5"/>
 <text x="686" y="112" font-size="12" fill="#29261B">semantic_topk @ 300</text>
-<path d="M70.0,229.0 L260.0,179.3 L450.0,107.7 L640.0,60.0" fill="none" stroke="#6B8F71" stroke-width="2.5"/>
-<circle cx="70.0" cy="229.0" r="3.5" fill="#6B8F71"/>
-<circle cx="260.0" cy="179.3" r="3.5" fill="#6B8F71"/>
-<circle cx="450.0" cy="107.7" r="3.5" fill="#6B8F71"/>
-<circle cx="640.0" cy="60.0" r="3.5" fill="#6B8F71"/>
+<path d="M70.0,229.4 L260.0,164.1 L450.0,72.6 L640.0,56.7" fill="none" stroke="#6B8F71" stroke-width="2.5"/>
+<circle cx="70.0" cy="229.4" r="3.5" fill="#6B8F71"/>
+<circle cx="260.0" cy="164.1" r="3.5" fill="#6B8F71"/>
+<circle cx="450.0" cy="72.6" r="3.5" fill="#6B8F71"/>
+<circle cx="640.0" cy="56.7" r="3.5" fill="#6B8F71"/>
 <line x1="656" y1="130" x2="680" y2="130" stroke="#6B8F71" stroke-width="2.5"/>
 <text x="686" y="134" font-size="12" fill="#29261B">hierarchical @ 300</text>
-<path d="M70.0,137.6 L260.0,79.9 L450.0,62.0 L640.0,56.0" fill="none" stroke="#8A6D9E" stroke-width="2.5"/>
-<circle cx="70.0" cy="137.6" r="3.5" fill="#8A6D9E"/>
-<circle cx="260.0" cy="79.9" r="3.5" fill="#8A6D9E"/>
-<circle cx="450.0" cy="62.0" r="3.5" fill="#8A6D9E"/>
+<path d="M70.0,252.9 L260.0,86.2 L450.0,56.0 L640.0,56.0" fill="none" stroke="#8A6D9E" stroke-width="2.5"/>
+<circle cx="70.0" cy="252.9" r="3.5" fill="#8A6D9E"/>
+<circle cx="260.0" cy="86.2" r="3.5" fill="#8A6D9E"/>
+<circle cx="450.0" cy="56.0" r="3.5" fill="#8A6D9E"/>
 <circle cx="640.0" cy="56.0" r="3.5" fill="#8A6D9E"/>
 <line x1="656" y1="152" x2="680" y2="152" stroke="#8A6D9E" stroke-width="2.5"/>
 <text x="686" y="156" font-size="12" fill="#29261B">hybrid @ 300</text>
