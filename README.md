@@ -3,9 +3,9 @@
 > **한 줄 요약.** 같은 주장을 세 번 스스로 깎아낸 기록이다. ① 약한 렉시컬 유사도(mock)에선
 > 툴이 늘수록 semantic top-k가 정답을 놓치는 절벽이 가팔랐고(recall@1 0.70→0.13) hybrid
 > 라우팅이 필수처럼 보였다. ② 그런데 실제 임베딩(bge-small)으로 같은 카탈로그를 돌리니 절벽은
-> 훨씬 완만했고(0.89→0.70) hybrid 이점도 marginal이었다. ③ 나아가 실제 MCP 서버 툴 70개를
-> 재보니 근접 중복은 분명 실재하지만(67%가 코사인 0.80+ 이웃 보유) 내 합성 카탈로그가 실제보다
-> 과하게 붐볐다(최근접 중앙값 0.95 vs 0.83). 최종 입장은 "문제는 진짜지만 내가 처음에 과장했다"
+> 훨씬 완만했고(0.89→0.70) hybrid 이점도 marginal이었다. ③ 나아가 실제 MCP 서버 22곳의 툴 247개를
+> 재보니 근접 중복은 분명 실재하지만(70%가 코사인 0.80+ 이웃 보유) 내 합성 카탈로그가 실제보다
+> 과하게 붐볐다(최근접 중앙값 0.95 vs 0.84). 최종 입장은 "문제는 진짜지만 내가 처음에 과장했다"
 > — 자극적인 숫자 하나가 아니라, 어느 상황에서 라우팅이 실제로 중요한지를 재는 도구다.
 
 에이전트가 쓰는 MCP 툴이 수백 개로 불어나면, 그중 semantic top-k만 노출하는 라우팅이
@@ -152,17 +152,20 @@ flowchart LR
   말하는 것보다 완만하다"였다.
 
 ### 실제 MCP 툴은 정말 근접 중복이 있나 (외적 타당성)
-공개 MCP 서버 6곳(filesystem·github·slack·git·memory·gdrive)에서 **실제 툴 정의 70개**를 하베스트해
-bge-small로 pairwise 유사도를 쟀다(`make similarity`, [`docs/real-tool-similarity.md`](docs/real-tool-similarity.md)).
+공개 MCP 서버 **22곳**(filesystem·github·gitlab·slack·git·memory·postgres·sqlite·mongodb·
+google-maps·brave-search·puppeteer·playwright·firecrawl·tavily·fetch·time·gdrive·sentry·
+everart·aws-kb·sequentialthinking)에서 **실제 툴 정의 247개**를 하베스트해 bge-small로 pairwise
+유사도를 쟀다(`make similarity`, [`docs/real-tool-similarity.md`](docs/real-tool-similarity.md)).
 
-- 실제 툴의 **67%**가 코사인 0.80 이상인 근접 이웃을 가진다(중앙값 최근접 0.83). 근접 중복은
-  합성이 지어낸 게 아니라 실재한다 — `list_directory`/`list_directory_with_sizes`(0.93),
-  `get_pull_request_comments`/`get_pull_request_reviews`(0.93), `git_diff_unstaged`/`git_diff_staged`(0.89)
-  같은 실제 쌍이 그 예다. 그리고 중복은 서버 안에 몰려 있다(서버 내 0.67 vs 서버 간 0.52).
-- 다만 **합성 카탈로그가 실제보다 과하게 붐빈다**: 최근접 코사인 중앙값이 합성 0.95 vs 실제 0.83,
-  0.90 초과 비율이 합성 88% vs 실제 11%. 즉 합성은 절벽을 실제보다 세게 잡는다.
+- 실제 툴의 **70%**가 코사인 0.80 이상인 근접 이웃을 가진다(중앙값 최근접 0.84). 근접 중복은
+  합성이 지어낸 게 아니라 실재한다 — `aggregate`/`aggregate-db`(0.96), `maps_geocode`/`maps_reverse_geocode`(0.95),
+  `list_directory`/`list_directory_with_sizes`(0.93), `browser_mouse_drag_xy`/`browser_mouse_move_xy`(0.94)
+  같은 실제 쌍이 그 예다. 중복은 서버 안에 몰려 있고(서버 내 0.64 vs 서버 간 0.51), github↔gitlab이나
+  firecrawl↔tavily처럼 **서로 다른 서버끼리도** 겹친다.
+- 다만 **합성 카탈로그가 실제보다 과하게 붐빈다**: 최근접 코사인 중앙값이 합성 0.95 vs 실제 0.84,
+  0.90 초과 비율이 합성 88% vs 실제 13%. 즉 합성은 절벽을 실제보다 세게 잡는다.
 - 그래서 정직한 종합: **문제(근접 중복)는 실재하지만, 실제 코퍼스+실제 임베딩에서는 절벽이
-  이 저장소의 mock 수치보다도 더 완만할 가능성이 높다.** (표본 70개/6서버는 앵커일 뿐 모집단
+  이 저장소의 mock 수치보다도 더 완만할 가능성이 높다.** (표본 247개/22서버는 앵커일 뿐 모집단
   추정이 아니다.)
 
 ### 라우팅 전략이 실제로 중요해지는 때

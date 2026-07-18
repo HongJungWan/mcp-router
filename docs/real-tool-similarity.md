@@ -1,39 +1,39 @@
 # Real MCP tools vs. the synthetic catalog — pairwise similarity
 
-Embedding model: `BAAI/bge-small-en-v1.5`. Real corpus: **70 tools / 6 servers** (filesystem, github, slack, git, memory, gdrive), harvested from public modelcontextprotocol servers. Synthetic: `build_catalog(300)`.
+Embedding model: `BAAI/bge-small-en-v1.5`. Real corpus: **247 tools / 22 servers** (aws-kb, brave-search, everart, fetch, filesystem, firecrawl, gdrive, git, github, gitlab, google-maps, memory, mongodb, playwright, postgres, puppeteer, sentry, sequentialthinking, slack, sqlite, tavily, time), harvested from public MCP servers (modelcontextprotocol reference/archived + firecrawl/tavily/playwright/mongodb). Synthetic: `build_catalog(300)`.
 
 **The question:** do real tool catalogs actually contain the near-duplicate crowding the benchmark assumes? The nearest-neighbour cosine per tool is the load-bearing number — a high value means the tool has a near-twin that can displace it from a small top-k.
 
 | nearest-neighbour cosine | real MCP tools | synthetic catalog |
 |---|---|---|
-| mean | 0.823 | 0.934 |
-| median | 0.831 | 0.947 |
-| p90 | 0.902 | 0.971 |
-| max | 0.943 | 0.99 |
-| fraction with NN > 0.80 | 0.671 | 0.963 |
-| fraction with NN > 0.90 | 0.114 | 0.88 |
+| mean | 0.833 | 0.934 |
+| median | 0.841 | 0.947 |
+| p90 | 0.91 | 0.971 |
+| max | 0.955 | 0.99 |
+| fraction with NN > 0.80 | 0.7 | 0.963 |
+| fraction with NN > 0.90 | 0.13 | 0.88 |
 
-Real, within-server mean cosine = **0.672**, cross-server = **0.524** (tools from the same server are the near-duplicates, as expected).
+Real, within-server mean cosine = **0.637**, cross-server = **0.514** (tools from the same server are the near-duplicates, as expected).
 
 **Top real near-duplicate pairs (bge cosine):**
 
 | cosine | tool A | tool B | server |
 |---|---|---|---|
+| 0.955 | aggregate | aggregate-db | mongodb |
+| 0.948 | maps_geocode | maps_reverse_geocode | google-maps |
+| 0.947 | atlas-create-access-list | atlas-inspect-access-list | mongodb |
+| 0.946 | browser_verify_element_visible | browser_verify_text_visible | playwright |
 | 0.943 | delete_entities | delete_relations | memory |
+| 0.935 | browser_mouse_drag_xy | browser_mouse_move_xy | playwright |
 | 0.930 | get_pull_request_comments | get_pull_request_reviews | github |
+| 0.927 | browser_verify_element_visible | browser_verify_list_visible | playwright |
 | 0.926 | list_directory | list_directory_with_sizes | filesystem |
-| 0.902 | create_issue | update_issue | github |
-| 0.900 | search_repositories | search_code | github |
-| 0.897 | create_pull_request_review | get_pull_request_reviews | github |
-| 0.893 | delete_entities | delete_observations | memory |
-| 0.891 | git_diff_unstaged | git_diff_staged | git |
-| 0.883 | create_pull_request_review | get_pull_request_comments | github |
-| 0.876 | slack_reply_to_thread | slack_get_thread_replies | slack |
-| 0.875 | create_repository | create_branch | github |
-| 0.864 | delete_observations | delete_relations | memory |
+| 0.923 | atlas-local-connect-deployment | atlas-local-create-deployment | mongodb |
+| 0.923 | browser_mouse_click_xy | browser_mouse_move_xy | playwright |
+| 0.922 | browser_set_storage_state | browser_storage_state | playwright |
 
 ## Reading
 
-Real MCP tools carry genuine near-duplicates: median nearest-neighbour cosine 0.831, with 67% of tools having a neighbour above 0.80. So the crowding the benchmark studies is NOT a synthetic invention — it exists in real catalogs, concentrated within a server (within 0.672 vs cross 0.524).
+Real MCP tools carry genuine near-duplicates: median nearest-neighbour cosine 0.841, with 70% of tools having a neighbour above 0.80. So the crowding the benchmark studies is NOT a synthetic invention — it exists in real catalogs, concentrated within a server (within 0.637 vs cross 0.514).
 
-Versus the synthetic catalog, the real corpus is **milder than** the synthetic one on median NN cosine (real 0.831 vs synthetic 0.947). Caveat: 70 tools / 6 servers is a modest sample, and a real deployment mixes many more servers — this is an anchor, not a population estimate.
+Versus the synthetic catalog, the real corpus is **milder than** the synthetic one on median NN cosine (real 0.841 vs synthetic 0.947). Caveat: 247 tools / 22 servers is a real but non-exhaustive sample, and a production deployment may mix a different set — this is an anchor, not a population estimate.

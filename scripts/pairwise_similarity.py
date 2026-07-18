@@ -83,12 +83,14 @@ def main():
     top = pairs[:12]
 
     # ---- report ----
+    srv_list = sorted(set(r_servers))
     lines = [
         "# Real MCP tools vs. the synthetic catalog — pairwise similarity",
         "",
-        f"Embedding model: `{MODEL}`. Real corpus: **{n} tools / 6 servers** "
-        "(filesystem, github, slack, git, memory, gdrive), harvested from public "
-        "modelcontextprotocol servers. Synthetic: `build_catalog(300)`.",
+        f"Embedding model: `{MODEL}`. Real corpus: **{n} tools / {len(srv_list)} servers** "
+        f"({', '.join(srv_list)}), harvested from public MCP servers "
+        "(modelcontextprotocol reference/archived + firecrawl/tavily/playwright/mongodb). "
+        "Synthetic: `build_catalog(300)`.",
         "",
         "**The question:** do real tool catalogs actually contain the near-duplicate "
         "crowding the benchmark assumes? The nearest-neighbour cosine per tool is the "
@@ -128,8 +130,8 @@ def main():
     lines.append(
         f"Versus the synthetic catalog, the real corpus is **{verdict}** the synthetic one "
         f"on median NN cosine (real {real_stats['nn_p50']} vs synthetic {syn_stats['nn_p50']}). "
-        "Caveat: 70 tools / 6 servers is a modest sample, and a real deployment mixes many "
-        "more servers — this is an anchor, not a population estimate."
+        f"Caveat: {n} tools / {len(srv_list)} servers is a real but non-exhaustive sample, and a "
+        "production deployment may mix a different set — this is an anchor, not a population estimate."
     )
 
     out = os.path.join(ROOT, "docs", "real-tool-similarity.md")
