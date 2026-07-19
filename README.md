@@ -27,9 +27,11 @@
 목적은 겁주는 숫자 하나를 파는 게 아니라, 지금 내가 어느 쪽 상황에 있는지를 데이터로 알려주는
 것이다.
 
-> 상태: **M3 — 오프라인 평가 하네스**다. 돌아가는 게이트웨이가 아니다(서빙·프로토콜·RBAC 코드는
-> 없고 로드맵). mock 경로는 순수 stdlib이고 같은 seed면 바이트 단위로 재현된다. `bge-small`
-> 수치는 모델을 실제로 돌려서(`--embed local`) 얻었고, float 수준에서 재현된다(비트 단위는 아님).
+> 상태: **M3(오프라인 평가) + M1(돌아가는 게이트웨이).** M3 mock 경로는 순수 stdlib이고 같은
+> seed면 바이트 단위로 재현된다. `bge-small` 수치는 모델을 실제로 돌려서(`--embed local`) 얻었고
+> float 수준에서 재현된다. M1 게이트웨이(federation·RBAC·circuit breaker, `make gateway-demo`)는
+> M3가 오프라인으로 평가하던 서빙 계층을 실제로 구현한다 — 기본 업스트림은 하베스트한 실제 툴
+> 정의로 만든 in-process mock이고, 실제 stdio/HTTP MCP 업스트림 연결은 로드맵이다.
 
 ---
 
@@ -197,11 +199,36 @@ pgvector/HNSW(수백 개 벡터엔 exact brute-force가 더 빠르고 정확), d
 에이전트(Claude 어댑터가 이미 tool-use를 함), OpenTelemetry 익스포터(단일 프로세스 벤치엔 JSONL로
 충분), latency 파이프라인(부하 없는 in-process 계측은 의미 없음). 안 쓸 걸 만들어 두는 대신 뺐다.
 
+## 게이트웨이 (M1, 돌아가는 서빙 계층)
+
+M3가 오프라인으로 평가하던 것을 실제로 돌린다. 세 가지가 핵심이다.
+
+- **Federation** — 여러 업스트림 MCP 서버의 툴을 `server.tool`로 네임스페이싱해 하나의 카탈로그로
+  통합한다(서버명은 유일 가정 — 중복 시 에러; 서버 내 툴명 충돌은 suffix로 가드 + 네임→업스트림 역해석).
+  기본 업스트림은 하베스트한 실제 툴 정의(22서버)로
+  만든 in-process mock이라 네트워크 없이 결정적으로 돈다.
+- **RBAC** — 테넌트별 allow/deny(글롭, deny 우선)로 노출 카탈로그를 먼저 거른다. 예: `ci`는
+  github/gitlab/filesystem/git만, `readonly`는 읽기 동사(get/list/read/search…) allowlist라 그 외는 기본 거부.
+  매칭은 `fnmatchcase`(대소문자 구분)라 플랫폼 무관하게 같은 판정을 준다.
+- **Circuit breaker** — 업스트림별 closed→open→half-open. 실패가 임계를 넘으면 트립해 즉시 fast-fail,
+  쿨다운 뒤 half-open 프로브로 복구. 클록을 주입해 결정적으로 테스트된다.
+
+노출 툴 선정은 **M3의 라우터를 그대로 재사용**한다(쿼리 힌트가 있으면 top-k로 컨텍스트 예산). 서빙과
+벤치가 같은 라우팅 코드를 공유하는 셈이다.
+
+```bash
+make gateway-demo    # 인프로세스 walk-through: federation -> RBAC -> routing -> breaker 트립/복구
+make gateway-serve   # JSON-RPC HTTP 서버 (tools/list · tools/call · gateway/stats; X-Tenant 헤더)
+```
+
+`deploy/gateway.config.json`으로 전략·breaker·테넌트 정책을 설정한다. 실제 stdio/HTTP MCP 업스트림과
+공식 MCP SDK 트랜스포트는 로드맵(현재는 stdlib HTTP JSON-RPC로 대체).
+
 ## 실행
 
 ```bash
 make bench      # 오프라인·순수 stdlib·같은 seed면 바이트 단위 재현
-make test       # unittest 21케이스 (절벽·에이전트 분리·기하·리포트 e2e)
+make test       # unittest 28케이스 (절벽·에이전트 분리·기하·리포트 e2e·게이트웨이)
 make sweep      # core_share 민감도
 make bench-real # bge-small 임베딩 (pip install .[local]); float 재현
 ```
@@ -214,9 +241,10 @@ CI를 과소추정한다). McNemar는 recall_hit 위에서 돌리고 Benjamini-H
 `summary.json`에 박힌다.
 
 ## 로드맵
-~~실제 MCP 서버 코퍼스로 pairwise 유사도 측정~~ → 완료(위 "외적 타당성", `make similarity`).
-남은 것: 더 넓은 서버 표본으로 확장, 돌아가는 게이트웨이(federation·RBAC·서킷브레이커), cassette를
-커밋한 Claude tool-use 에이전트 실행, 토큰 비용용 실제 토크나이저.
+~~실제 MCP 서버 코퍼스로 pairwise 유사도 측정~~ → 완료(`make similarity`).
+~~돌아가는 게이트웨이(federation·RBAC·서킷브레이커)~~ → M1 완료(`make gateway-demo`, `src/mcp_router/gateway/`).
+남은 것: 실제 stdio/HTTP MCP 업스트림 + 공식 MCP SDK 트랜스포트 연결, cassette를 커밋한 Claude
+tool-use 에이전트 실행, 토큰 비용용 실제 토크나이저, 더 넓은 서버 표본.
 
 ## 구조
 ```
@@ -228,6 +256,7 @@ src/mcp_router/
   labeling/    self-consistency 라벨러 + Cohen's kappa
   bench/       분리된 에이전트, metrics(fractional recall·cluster bootstrap·McNemar+BH·phi),
                runner, report
-  tracing.py · cli.py (bench run | bench sweep)
+  gateway/     M1 서빙: federation · rbac · breaker · server(Gateway) · transport(HTTP JSON-RPC) · factory
+  tracing.py · cli.py (bench run|sweep · gateway serve|demo)
 tests/         unittest 21케이스
 ```

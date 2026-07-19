@@ -1,0 +1,15 @@
+{
+  "_note": "Example gateway config. Upstreams default to in-process mocks from data/real_mcp_tools.json (22 servers). Swap in real stdio/HTTP MCP upstreams for production (roadmap).",
+  "strategy": "hybrid",
+  "breaker": { "failure_threshold": 3, "reset_timeout": 30.0 },
+  "rbac": {
+    "tenants": {
+      "ci":      { "allow": ["github.*", "gitlab.*", "filesystem.*", "git.*"] },
+      "support": { "allow": ["slack.*", "sentry.*"] },
+      "readonly":{ "allow": ["*get*", "*list*", "*read*", "*search*", "*find*",
+                             "*describe*", "*show*", "*status*", "*log*", "*diff*",
+                             "*count*", "*stats*", "*inspect*", "*history*", "*snapshot*"] }
+    },
+    "default": { "deny": ["mongodb.drop-database", "mongodb.drop-collection"] }
+  }
+}

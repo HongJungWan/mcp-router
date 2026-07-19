@@ -3,7 +3,7 @@
 PYTHON ?= python
 RUN_ENV := PYTHONPATH=src PYTHONIOENCODING=utf-8
 
-.PHONY: help install bench sweep similarity bench-real test lint clean
+.PHONY: help install bench sweep similarity gateway-demo gateway-serve bench-real test lint clean
 
 help:
 	@echo "Available targets:"
@@ -12,6 +12,8 @@ help:
 	@echo "  bench      - Run the benchmark on the offline stdlib default path"
 	@echo "  sweep      - core_share sensitivity sweep (cliff is not a constant artifact)"
 	@echo "  similarity - measure real MCP tool pairwise similarity vs the synthetic catalog (needs .[local])"
+	@echo "  gateway-demo  - in-process gateway walk-through (federation/RBAC/routing/breaker)"
+	@echo "  gateway-serve - run the gateway as a JSON-RPC HTTP server"
 	@echo "  bench-real - Run with real providers (bge-small embed, claude llm); requires extras + API key"
 	@echo "  test       - Run the unittest suite"
 	@echo "  lint       - Byte-compile all sources under src"
@@ -28,6 +30,12 @@ sweep:
 
 similarity:
 	$(RUN_ENV) $(PYTHON) scripts/pairwise_similarity.py
+
+gateway-demo:
+	$(RUN_ENV) $(PYTHON) -m mcp_router gateway demo
+
+gateway-serve:
+	$(RUN_ENV) $(PYTHON) -m mcp_router gateway serve
 
 bench-real:
 	$(RUN_ENV) $(PYTHON) -m mcp_router bench run --out artifacts-real --embed local --llm claude

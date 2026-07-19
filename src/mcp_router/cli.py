@@ -99,9 +99,76 @@ def cmd_bench_sweep(a) -> int:
     return 0
 
 
+def cmd_gateway_serve(a) -> int:
+    from .gateway.factory import build_gateway
+    from .gateway.transport import make_server
+    gw = build_gateway(a.config or None)
+    s = gw.stats()
+    print(f"[mcp-router] gateway: {s['n_tools']} tools / {len(s['upstreams'])} upstreams "
+          f"(config_hash {s['config_hash']})", file=sys.stderr)
+    httpd = make_server(gw, a.host, a.port)
+    print(f"serving JSON-RPC on http://{a.host}:{a.port}  "
+          f"(methods: tools/list, tools/call, gateway/stats; tenant via X-Tenant header)")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        httpd.shutdown()
+    return 0
+
+
+def cmd_gateway_demo(a) -> int:
+    """In-process walk-through: federation -> RBAC -> routing -> breaker trip/recover.
+    Deterministic (injected clock); needs no network or curl."""
+    from .gateway.factory import build_gateway
+    from .gateway import Gateway
+    from .gateway.breaker import CircuitOpenError
+    from .gateway.upstream import UpstreamError
+    clock = [1000.0]
+    base = build_gateway(a.config or None)
+    gw = Gateway(base.fed, base.rbac, strategy="hybrid",
+                 breaker_kwargs={"failure_threshold": 3, "reset_timeout": 30.0},
+                 now=lambda: clock[0])
+    print(f"federation: {len(gw.fed.catalog().tools)} tools / {len(gw.fed.upstreams)} upstreams")
+    exposed = gw.list_tools("ci", query="create a pull request on github", k=3)
+    print("route (ci, 'create a pull request', k=3):", [e["name"] for e in exposed])
+    print("ci allowed catalog:", len(gw.list_tools("ci")), "tools")
+    print("call github.create_issue:", gw.call_tool("ci", "github.create_issue", {"title": "demo"})["ok"])
+    try:
+        gw.call_tool("ci", "slack.slack_post_message", {})
+    except PermissionError:
+        print("RBAC: slack denied for 'ci' -> blocked")
+    gw.fed.upstreams["github"].fail = True
+    seq = []
+    for _ in range(5):
+        try:
+            gw.call_tool("ci", "github.create_issue", {}); seq.append("ok")
+        except CircuitOpenError:
+            seq.append("OPEN")
+        except UpstreamError:
+            seq.append("fail")
+    print("breaker (github down, threshold 3):", seq)
+    gw.fed.upstreams["github"].fail = False
+    clock[0] += 31
+    print("after cooldown+recovery:", gw.call_tool("ci", "github.create_issue", {})["ok"])
+    print("breaker states:", gw.stats()["breakers"])
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="mcp-router")
     sub = p.add_subparsers(dest="cmd", required=True)
+
+    g = sub.add_parser("gateway", help="run the serving gateway (M1)")
+    gsub = g.add_subparsers(dest="gateway_cmd", required=True)
+    gserve = gsub.add_parser("serve", help="serve JSON-RPC over HTTP")
+    gserve.add_argument("--config", default="deploy/gateway.config.json")
+    gserve.add_argument("--host", default="127.0.0.1")
+    gserve.add_argument("--port", type=int, default=8765)
+    gserve.set_defaults(func=cmd_gateway_serve)
+    gdemo = gsub.add_parser("demo", help="in-process demo (federation/RBAC/routing/breaker)")
+    gdemo.add_argument("--config", default="deploy/gateway.config.json")
+    gdemo.set_defaults(func=cmd_gateway_demo)
+
     b = sub.add_parser("bench", help="benchmark commands")
     bsub = b.add_subparsers(dest="bench_cmd", required=True)
     run = bsub.add_parser("run", help="run the routing benchmark")

@@ -27,7 +27,8 @@ Andrej Karpathy가 정리한 LLM 코딩의 실패 모드에서 나온 네 가지
 
 MCP 툴 라우팅의 recall 절벽을 측정하는 오프라인 벤치마크다. 툴 카탈로그가 수백 개로 커질 때
 semantic top-k 라우팅이 정답 툴을 놓치는 현상을, 합성 카탈로그와 mock 임베딩으로 재현하고
-실제 임베딩(bge-small)으로 교차검증한다. 서빙 게이트웨이가 아니라 평가 하네스다.
+실제 임베딩(bge-small)으로 교차검증한다. 여기에 M1 서빙 게이트웨이(`src/mcp_router/gateway/`:
+federation·RBAC·circuit breaker, M3 라우터 재사용)를 더해, 평가하던 계층을 실제로 돌린다.
 
 ## 실행
 
