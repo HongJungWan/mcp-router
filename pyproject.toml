@@ -13,6 +13,7 @@ dependencies = []
 # Real, opt-in adapters. The offline default path needs none of these.
 claude = ["anthropic"]                       # real Claude tool-use llm/agent
 local = ["sentence-transformers"]            # real bge-small embeddings
+mcp = ["mcp"]                                # real stdio/HTTP MCP upstreams + SDK server transport
 
 [project.scripts]
 mcp-router = "mcp_router.cli:main"

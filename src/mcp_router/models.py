@@ -14,6 +14,7 @@ class Tool:
     keywords: List[str]           # discriminating tokens (for lexical match)
     is_distractor: bool = False   # near-duplicate crowd tool
     token_cost: int = 0           # estimated schema tokens exposed to the LLM
+    input_schema: Optional[dict] = None   # JSON Schema from a real upstream (None for synthetic)
 
     @property
     def embed_text(self) -> str:

@@ -99,21 +99,39 @@ def cmd_bench_sweep(a) -> int:
     return 0
 
 
+def _close_upstreams(gw) -> None:
+    for u in gw.fed.upstreams.values():
+        close = getattr(u, "close", None)
+        if callable(close):
+            try:
+                close()
+            except Exception:
+                pass
+
+
 def cmd_gateway_serve(a) -> int:
     from .gateway.factory import build_gateway
-    from .gateway.transport import make_server
     gw = build_gateway(a.config or None)
     s = gw.stats()
     print(f"[mcp-router] gateway: {s['n_tools']} tools / {len(s['upstreams'])} upstreams "
-          f"(config_hash {s['config_hash']})", file=sys.stderr)
-    httpd = make_server(gw, a.host, a.port)
-    print(f"serving JSON-RPC on http://{a.host}:{a.port}  "
-          f"(methods: tools/list, tools/call, gateway/stats; tenant via X-Tenant header)")
+          f"(config_hash {s['config_hash']}) transport={a.transport}", file=sys.stderr)
     try:
-        httpd.serve_forever()
-    except KeyboardInterrupt:
-        httpd.shutdown()
-    return 0
+        if a.transport == "mcp-stdio":
+            import asyncio
+            from .gateway.mcp_server import run_stdio        # official MCP SDK (.[mcp])
+            asyncio.run(run_stdio(gw, tenant=a.tenant))
+            return 0
+        from .gateway.transport import make_server           # stdlib HTTP JSON-RPC
+        httpd = make_server(gw, a.host, a.port)
+        print(f"serving JSON-RPC on http://{a.host}:{a.port}  "
+              f"(methods: tools/list, tools/call, gateway/stats; tenant via X-Tenant header)")
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            httpd.shutdown()
+        return 0
+    finally:
+        _close_upstreams(gw)                                 # release real upstream subprocesses
 
 
 def cmd_gateway_demo(a) -> int:
@@ -160,8 +178,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     g = sub.add_parser("gateway", help="run the serving gateway (M1)")
     gsub = g.add_subparsers(dest="gateway_cmd", required=True)
-    gserve = gsub.add_parser("serve", help="serve JSON-RPC over HTTP")
+    gserve = gsub.add_parser("serve", help="serve the gateway (stdlib HTTP or official MCP stdio)")
     gserve.add_argument("--config", default="deploy/gateway.config.json")
+    gserve.add_argument("--transport", default="http", choices=["http", "mcp-stdio"],
+                        help="http = stdlib JSON-RPC; mcp-stdio = official MCP SDK (needs .[mcp])")
+    gserve.add_argument("--tenant", default="default", help="fixed tenant for mcp-stdio transport")
     gserve.add_argument("--host", default="127.0.0.1")
     gserve.add_argument("--port", type=int, default=8765)
     gserve.set_defaults(func=cmd_gateway_serve)

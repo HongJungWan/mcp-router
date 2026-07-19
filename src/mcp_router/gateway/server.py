@@ -80,7 +80,8 @@ class Gateway:
             ids = [t.id for t in ctx.catalog.tools]           # no hint -> full allowed set
         else:
             ids = get_strategy(strategy or self.strategy_name)(ctx, query, k)
-        return [{"name": by_id[i].namespaced_name, "description": by_id[i].description} for i in ids]
+        return [{"name": by_id[i].namespaced_name, "description": by_id[i].description,
+                 "inputSchema": by_id[i].input_schema or {"type": "object"}} for i in ids]
 
     def call_tool(self, tenant: str, name: str, arguments: Optional[dict] = None) -> dict:
         cat = self.fed.catalog()

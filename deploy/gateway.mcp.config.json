@@ -1,0 +1,16 @@
+{
+  "_note": "Real MCP upstreams via the official SDK (pip install .[mcp]). Replaces the in-process mock upstreams. Requires the upstream servers to be launchable (e.g. npx for the reference servers, or a running HTTP endpoint).",
+  "strategy": "hybrid",
+  "breaker": { "failure_threshold": 3, "reset_timeout": 30.0 },
+  "upstreams": [
+    { "type": "stdio", "name": "everything",
+      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-everything"] },
+    { "type": "stdio", "name": "filesystem",
+      "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "."] },
+    { "type": "http", "name": "remote", "url": "http://localhost:9000/mcp" }
+  ],
+  "rbac": {
+    "tenants": { "ci": { "allow": ["everything.*", "filesystem.*"] } },
+    "default": { "deny": ["*.delete_*", "*-delete-*"] }
+  }
+}

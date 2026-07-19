@@ -31,7 +31,8 @@
 > seed면 바이트 단위로 재현된다. `bge-small` 수치는 모델을 실제로 돌려서(`--embed local`) 얻었고
 > float 수준에서 재현된다. M1 게이트웨이(federation·RBAC·circuit breaker, `make gateway-demo`)는
 > M3가 오프라인으로 평가하던 서빙 계층을 실제로 구현한다 — 기본 업스트림은 하베스트한 실제 툴
-> 정의로 만든 in-process mock이고, 실제 stdio/HTTP MCP 업스트림 연결은 로드맵이다.
+> 정의로 만든 in-process mock이지만, **공식 MCP SDK로 실제 stdio/HTTP 업스트림에 연결하고 게이트웨이를
+> 실제 MCP 서버로 서빙하는 경로가 붙어 있고 실 서브프로세스 왕복으로 검증된다**(`pip install .[mcp]`).
 
 ---
 
@@ -218,17 +219,23 @@ M3가 오프라인으로 평가하던 것을 실제로 돌린다. 세 가지가 
 
 ```bash
 make gateway-demo    # 인프로세스 walk-through: federation -> RBAC -> routing -> breaker 트립/복구
-make gateway-serve   # JSON-RPC HTTP 서버 (tools/list · tools/call · gateway/stats; X-Tenant 헤더)
+make gateway-serve   # stdlib JSON-RPC HTTP 서버 (tools/list · tools/call · gateway/stats; X-Tenant 헤더)
 ```
 
-`deploy/gateway.config.json`으로 전략·breaker·테넌트 정책을 설정한다. 실제 stdio/HTTP MCP 업스트림과
-공식 MCP SDK 트랜스포트는 로드맵(현재는 stdlib HTTP JSON-RPC로 대체).
+**실제 MCP 연결(공식 SDK, `pip install .[mcp]`).** mock/stdlib를 진짜로 교체한다.
+- 업스트림: `deploy/gateway.mcp.config.json`처럼 `upstreams`에 stdio(예: `npx @modelcontextprotocol/server-everything`)
+  또는 http(streamable) 서버를 지정하면, async SDK 세션을 전용 이벤트루프 스레드로 브리지해 동기 Gateway에
+  붙인다(`gateway/mcp_upstream.py`).
+- 서빙: `make gateway-serve TRANSPORT=... ` 대신 `python -m mcp_router gateway serve --transport mcp-stdio`로
+  게이트웨이를 **공식 MCP 서버**(lowlevel Server, stdio)로 노출한다(`gateway/mcp_server.py`).
+- 검증: 실제 FastMCP 서버 서브프로세스와의 stdio 왕복 + 게이트웨이를 MCP 서버로 띄워 SDK 클라이언트로
+  호출하는 **양방향 통합 테스트**(`tests/test_mcp_integration.py`, `.[mcp]` 없으면 자동 skip).
 
 ## 실행
 
 ```bash
 make bench      # 오프라인·순수 stdlib·같은 seed면 바이트 단위 재현
-make test       # unittest 28케이스 (절벽·에이전트 분리·기하·리포트 e2e·게이트웨이)
+make test       # unittest 36케이스 (절벽·에이전트·게이트웨이·실제 MCP 왕복; .[mcp] 없으면 MCP 3케이스 skip)
 make sweep      # core_share 민감도
 make bench-real # bge-small 임베딩 (pip install .[local]); float 재현
 ```
@@ -243,7 +250,8 @@ CI를 과소추정한다). McNemar는 recall_hit 위에서 돌리고 Benjamini-H
 ## 로드맵
 ~~실제 MCP 서버 코퍼스로 pairwise 유사도 측정~~ → 완료(`make similarity`).
 ~~돌아가는 게이트웨이(federation·RBAC·서킷브레이커)~~ → M1 완료(`make gateway-demo`, `src/mcp_router/gateway/`).
-남은 것: 실제 stdio/HTTP MCP 업스트림 + 공식 MCP SDK 트랜스포트 연결, cassette를 커밋한 Claude
+~~실제 stdio/HTTP MCP 업스트림 + 공식 MCP SDK 트랜스포트 연결~~ → 완료(`gateway/mcp_upstream.py`·`mcp_server.py`, `.[mcp]`, 양방향 통합 테스트).
+남은 것: MCP 업스트림 세션 재연결/헬스체크(현재는 사망 시 UpstreamError로 표면화만), streamable-HTTP 멀티테넌트 서버, cassette를 커밋한 Claude
 tool-use 에이전트 실행, 토큰 비용용 실제 토크나이저, 더 넓은 서버 표본.
 
 ## 구조
@@ -256,7 +264,8 @@ src/mcp_router/
   labeling/    self-consistency 라벨러 + Cohen's kappa
   bench/       분리된 에이전트, metrics(fractional recall·cluster bootstrap·McNemar+BH·phi),
                runner, report
-  gateway/     M1 서빙: federation · rbac · breaker · server(Gateway) · transport(HTTP JSON-RPC) · factory
+  gateway/     M1 서빙: federation · rbac · breaker · server(Gateway) · factory
+               transport(stdlib HTTP JSON-RPC) · mcp_upstream(SDK stdio/http client) · mcp_server(SDK stdio)
   tracing.py · cli.py (bench run|sweep · gateway serve|demo)
 tests/         unittest 21케이스
 ```

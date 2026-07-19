@@ -44,7 +44,8 @@ class Federation:
                 desc = t.get("description", "")
                 tools.append(Tool(id=tid, namespaced_name=ns, group=uname,
                                    description=desc, keywords=[], is_distractor=False,
-                                   token_cost=estimate_tokens(ns, desc)))
+                                   token_cost=estimate_tokens(ns, desc),
+                                   input_schema=t.get("inputSchema")))
                 resolve[ns] = (uname, local)
                 groups.setdefault(uname, []).append(tid)
                 tid += 1
