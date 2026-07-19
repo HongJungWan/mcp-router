@@ -225,7 +225,8 @@ make gateway-serve   # stdlib JSON-RPC HTTP 서버 (tools/list · tools/call · 
 **실제 MCP 연결(공식 SDK, `pip install .[mcp]`).** mock/stdlib를 진짜로 교체한다.
 - 업스트림: `deploy/gateway.mcp.config.json`처럼 `upstreams`에 stdio(예: `npx @modelcontextprotocol/server-everything`)
   또는 http(streamable) 서버를 지정하면, async SDK 세션을 전용 이벤트루프 스레드로 브리지해 동기 Gateway에
-  붙인다(`gateway/mcp_upstream.py`).
+  붙인다(`gateway/mcp_upstream.py`). 세션은 주기적 `send_ping` 헬스 프로브로 감시하고, 사망 시 지수 백오프로
+  자동 재연결하며 상태를 `gateway/stats`의 `upstream_health`로 노출한다.
 - 서빙: `make gateway-serve TRANSPORT=... ` 대신 `python -m mcp_router gateway serve --transport mcp-stdio`로
   게이트웨이를 **공식 MCP 서버**(lowlevel Server, stdio)로 노출한다(`gateway/mcp_server.py`).
 - 검증: 실제 FastMCP 서버 서브프로세스와의 stdio 왕복 + 게이트웨이를 MCP 서버로 띄워 SDK 클라이언트로
@@ -235,7 +236,7 @@ make gateway-serve   # stdlib JSON-RPC HTTP 서버 (tools/list · tools/call · 
 
 ```bash
 make bench      # 오프라인·순수 stdlib·같은 seed면 바이트 단위 재현
-make test       # unittest 36케이스 (절벽·에이전트·게이트웨이·실제 MCP 왕복; .[mcp] 없으면 MCP 3케이스 skip)
+make test       # unittest 41케이스 (절벽·에이전트·게이트웨이·재연결·실제 MCP 왕복; .[mcp] 없으면 MCP 통합만 skip)
 make sweep      # core_share 민감도
 make bench-real # bge-small 임베딩 (pip install .[local]); float 재현
 ```
@@ -251,7 +252,8 @@ CI를 과소추정한다). McNemar는 recall_hit 위에서 돌리고 Benjamini-H
 ~~실제 MCP 서버 코퍼스로 pairwise 유사도 측정~~ → 완료(`make similarity`).
 ~~돌아가는 게이트웨이(federation·RBAC·서킷브레이커)~~ → M1 완료(`make gateway-demo`, `src/mcp_router/gateway/`).
 ~~실제 stdio/HTTP MCP 업스트림 + 공식 MCP SDK 트랜스포트 연결~~ → 완료(`gateway/mcp_upstream.py`·`mcp_server.py`, `.[mcp]`, 양방향 통합 테스트).
-남은 것: MCP 업스트림 세션 재연결/헬스체크(현재는 사망 시 UpstreamError로 표면화만), streamable-HTTP 멀티테넌트 서버, cassette를 커밋한 Claude
+~~MCP 업스트림 세션 재연결/헬스체크~~ → 완료(`send_ping` 헬스 프로브 + 지수 백오프 재연결, `gateway/stats`에 `upstream_health`; 재연결 상태머신은 SDK 없이 fake로 결정적 테스트).
+남은 것: streamable-HTTP 멀티테넌트 서버, cassette를 커밋한 Claude
 tool-use 에이전트 실행, 토큰 비용용 실제 토크나이저, 더 넓은 서버 표본.
 
 ## 구조

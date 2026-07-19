@@ -101,4 +101,6 @@ class Gateway:
             "upstreams": sorted(self.fed.upstreams),
             "n_tools": len(cat.tools),
             "breakers": [b.snapshot() for b in self._breakers.values()],
+            "upstream_health": [u.health() for u in self.fed.upstreams.values()
+                                if hasattr(u, "health")],
         }
