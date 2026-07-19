@@ -4,7 +4,7 @@ For every catalog size (staircase) it builds the routing context once, then for
 every labeled query runs each strategy at each k, recording:
   * fractional recall@k = |gold ∩ exposed| / |gold|   (primary routing metric)
   * hit-rate           = all gold exposed (set-cover)  (secondary)
-  * task_success       = a DECOUPLED, self-cardinality ReAct agent (Jaccard, NOT
+  * task_success       = a DECOUPLED, self-cardinality single-shot selection agent (Jaccard, NOT
                          told |gold|) picks from only the exposed tools — a weak
                          SECONDARY signal; we report phi(recall_hit, task_success)
                          so the reader can see it is not just recall re-labeled.

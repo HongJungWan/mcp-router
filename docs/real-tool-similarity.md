@@ -6,12 +6,12 @@ Embedding model: `BAAI/bge-small-en-v1.5`. Real corpus: **247 tools / 22 servers
 
 | nearest-neighbour cosine | real MCP tools | synthetic catalog |
 |---|---|---|
-| mean | 0.833 | 0.934 |
-| median | 0.841 | 0.947 |
+| mean | 0.833 | 0.928 |
+| median | 0.841 | 0.941 |
 | p90 | 0.91 | 0.971 |
 | max | 0.955 | 0.99 |
-| fraction with NN > 0.80 | 0.7 | 0.963 |
-| fraction with NN > 0.90 | 0.13 | 0.88 |
+| fraction with NN > 0.80 | 0.7 | 0.955 |
+| fraction with NN > 0.90 | 0.13 | 0.842 |
 
 Real, within-server mean cosine = **0.637**, cross-server = **0.514** (tools from the same server are the near-duplicates, as expected).
 
@@ -36,4 +36,6 @@ Real, within-server mean cosine = **0.637**, cross-server = **0.514** (tools fro
 
 Real MCP tools carry genuine near-duplicates: median nearest-neighbour cosine 0.841, with 70% of tools having a neighbour above 0.80. So the crowding the benchmark studies is NOT a synthetic invention — it exists in real catalogs, concentrated within a server (within 0.637 vs cross 0.514).
 
-Versus the synthetic catalog, the real corpus is **milder than** the synthetic one on median NN cosine (real 0.841 vs synthetic 0.947). Caveat: 247 tools / 22 servers is a real but non-exhaustive sample, and a production deployment may mix a different set — this is an anchor, not a population estimate.
+Versus the size-matched synthetic catalog, the real corpus is **milder than** it on median NN cosine (real 0.841 vs synthetic 0.941). Read this as **directional, not a controlled magnitude**: the synthetic NN level is partly an output of the crowding knobs (core_share, kw_collision), and the synthetic embed_text is templated (filler + numbered fake-protocol suffixes) which inflates its bge cosine relative to the real tools' natural-language descriptions — so the two NN columns are not strictly apples-to-apples.
+
+Two more caveats. (1) NN cosine is a tool↔tool geometry metric; recall@k depends on query↔tool ranking, so a near-duplicate is closer to a *necessary* than a *sufficient* condition for the cliff. (2) 247 tools / 22 servers is a real but non-exhaustive sample — an anchor, not a population estimate.

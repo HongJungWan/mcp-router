@@ -1,12 +1,21 @@
 """External-validity anchor: do REAL MCP tool catalogs have the near-duplicate
 crowding the synthetic benchmark assumes?
 
-Embeds 70 real tool definitions (harvested from public MCP reference/archived
-servers, data/real_mcp_tools.json) with bge-small-en-v1.5, and compares their
-pairwise-cosine "crowding" against the synthetic staircase catalog under the
-same embedding. The load-bearing statistic is the nearest-neighbour cosine per
-tool: high values mean each tool has a near-duplicate, which is exactly what
-pushes gold out of a small top-k.
+Embeds the real tool definitions in data/real_mcp_tools.json (247 tools / 22
+servers: modelcontextprotocol reference/archived + firecrawl/tavily/playwright/
+mongodb) with bge-small-en-v1.5, and compares their pairwise-cosine "crowding"
+against the synthetic catalog under the same embedding.
+
+The statistic is the nearest-neighbour cosine per tool: a high value means the
+tool has a near-twin that CAN displace it from a small top-k. Caveats it does
+NOT capture: it is a tool↔tool geometry metric, whereas recall@k depends on
+query↔tool ranking — so a near-duplicate is closer to a necessary than a
+sufficient condition for the cliff. The two NN columns are also not strictly
+apples-to-apples (synthetic embed_text is templated with filler tokens + numbered
+fake protocol suffixes, which inflates bge cosine vs the real tools' natural
+language), and the synthetic NN level is partly an output of the crowding knobs
+(core_share, kw_collision). Read the real↔synthetic gap as directional, not a
+controlled magnitude.
 
 Run: pip install .[local] && python scripts/pairwise_similarity.py
 Writes docs/real-tool-similarity.md.
@@ -57,8 +66,9 @@ def main():
     R = model.encode(r_texts, normalize_embeddings=True)
     r_sim = R @ R.T
 
-    # synthetic catalog under the SAME embedder
-    syn = build_catalog(300).tools
+    # synthetic catalog under the SAME embedder, SIZE-MATCHED to the real corpus
+    # so the NN comparison isn't confounded by catalog size.
+    syn = build_catalog(len(real)).tools
     S = model.encode([t.embed_text for t in syn], normalize_embeddings=True)
     s_sim = S @ S.T
 
@@ -128,10 +138,21 @@ def main():
     verdict = ("comparable to" if abs(real_stats["nn_p50"] - syn_stats["nn_p50"]) < 0.05
                else ("milder than" if real_stats["nn_p50"] < syn_stats["nn_p50"] else "harsher than"))
     lines.append(
-        f"Versus the synthetic catalog, the real corpus is **{verdict}** the synthetic one "
-        f"on median NN cosine (real {real_stats['nn_p50']} vs synthetic {syn_stats['nn_p50']}). "
-        f"Caveat: {n} tools / {len(srv_list)} servers is a real but non-exhaustive sample, and a "
-        "production deployment may mix a different set — this is an anchor, not a population estimate."
+        f"Versus the size-matched synthetic catalog, the real corpus is **{verdict}** it on median "
+        f"NN cosine (real {real_stats['nn_p50']} vs synthetic {syn_stats['nn_p50']}). Read this as "
+        "**directional, not a controlled magnitude**: the synthetic NN level is partly an output of "
+        "the crowding knobs (core_share, kw_collision), and the synthetic embed_text is templated "
+        "(filler + numbered fake-protocol suffixes) which inflates its bge cosine relative to the "
+        "real tools' natural-language descriptions — so the two NN columns are not strictly "
+        "apples-to-apples."
+    )
+    lines.append("")
+    lines.append(
+        f"Two more caveats. (1) NN cosine is a tool↔tool geometry metric; recall@k depends on "
+        "query↔tool ranking, so a near-duplicate is closer to a *necessary* than a *sufficient* "
+        "condition for the cliff. (2) "
+        f"{n} tools / {len(srv_list)} servers is a real but non-exhaustive sample — an anchor, not a "
+        "population estimate."
     )
 
     out = os.path.join(ROOT, "docs", "real-tool-similarity.md")

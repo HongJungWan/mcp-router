@@ -2,7 +2,7 @@
 
 **Reproducibility envelope**
 
-- git_sha: `5a4c01e` · seed: `1234` · embed: `mock-bow-hash-v1` · llm: `mock-jaccard-agent-v1` · vector: `memory`
+- git_sha: `a6aed70` · seed: `1234` · embed: `mock-bow-hash-v1` · llm: `mock-jaccard-agent-v1` · vector: `memory`
 - queries: 180 · staircase: [100, 200, 300] · k: [1, 3, 5, 10] · cluster-bootstrap n=1000
 - core_share=8 · kw_collision_ratio=0.2
 
@@ -89,7 +89,7 @@ Example traces:
 
 ## McNemar (recall_hit, paired by query, BH-corrected)
 
-Computed on **recall_hit** (the routing question), not the weak task_success. `b` = A hit / B miss; `c` = B hit / A miss. `q` = Benjamini-Hochberg adjusted p. hierarchical-vs-hybrid is genuinely two-sided (keyword collisions).
+Computed on **recall_hit** (the routing question), not the weak task_success. `b` = A hit / B miss; `c` = B hit / A miss. `q` = Benjamini-Hochberg adjusted p. The hierarchical-vs-hybrid pair can be two-sided (keyword collisions let hybrid lose recall) — read b and c from the table below for this run.
 
 | size | k | A | B | b | c | χ² | p | q |
 |---|---|---|---|---|---|---|---|---|

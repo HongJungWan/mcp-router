@@ -59,7 +59,7 @@ class RouteOutcome:
     recall_fraction: float                   # |gold ∩ exposed| / |gold|  (fractional recall@k)
     difficulty: str                          # single | multi | ambiguous (for stratification)
     cluster: int                             # gold-tool id used as bootstrap cluster key
-    # task-execution (ReAct agent) outcome:
+    # task-execution (single-shot selection agent) outcome:
     selected_tool_ids: List[int] = field(default_factory=list)
     task_success: bool = False
     trace_id: str = ""

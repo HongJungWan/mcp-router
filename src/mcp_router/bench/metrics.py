@@ -1,6 +1,7 @@
-"""Metrics: recall@k, task success, token/latency stats, bootstrap CIs, McNemar.
-
-Pure stdlib. Bootstrap uses a seeded RNG so CIs are reproducible.
+"""Statistics: percentile, iid + cluster bootstrap CIs, McNemar (with p
+formatting), Benjamini-Hochberg correction, and phi correlation. Pure stdlib;
+bootstraps use a seeded RNG so CIs are reproducible. (recall@k and token
+aggregation live in runner.py, not here.)
 """
 from __future__ import annotations
 
@@ -46,8 +47,11 @@ def bootstrap_ci(values: Sequence[float], n_resamples: int, seed_key: str,
 def cluster_bootstrap_ci(values: Sequence[float], clusters: Sequence[int],
                          n_resamples: int, seed_key: str, alpha: float = 0.05) -> Tuple[float, float]:
     """Cluster (block) bootstrap: resample whole gold-tool clusters, not single
-    queries. The 180 queries are ~6x clustered over 30 gold tools, so an iid
-    bootstrap understates the CI; resampling clusters respects that dependence."""
+    queries. The queries cluster over the gold tools, so an iid bootstrap
+    understates the CI; resampling clusters respects that dependence. Note: a
+    query is keyed to a single gold tool (its lowest gold id), so multi-gold
+    queries' cross-cluster dependence is only partly modelled — the multi
+    stratum CI can be slightly anti-conservative."""
     if not values:
         return (0.0, 0.0)
     groups: Dict[int, List[float]] = {}
@@ -88,10 +92,10 @@ def benjamini_hochberg(pvals: Sequence[float]) -> List[float]:
 
 
 def mcnemar(success_a: Sequence[int], success_b: Sequence[int]) -> Dict[str, float]:
-    """Paired comparison of two strategies' per-query task success (0/1).
-    b = A wins/B loses reversed... precisely: b = (a=1,b=0), c = (a=0,b=1).
-    Continuity-corrected chi-square, 1 dof; p kept as a raw float (not rounded to
-    0) plus a formatted string."""
+    """Paired comparison of two strategies on a binary per-query outcome (0/1).
+    The benchmark applies this to recall_hit (see runner._mcnemar_table), not to
+    task_success. b = (a=1,b=0), c = (a=0,b=1). Continuity-corrected chi-square,
+    1 dof; p kept as a raw float (not rounded to 0) plus a formatted string."""
     b = sum(1 for x, y in zip(success_a, success_b) if x == 1 and y == 0)
     c = sum(1 for x, y in zip(success_a, success_b) if x == 0 and y == 1)
     if b + c == 0:

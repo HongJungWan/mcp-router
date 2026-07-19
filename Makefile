@@ -3,7 +3,7 @@
 PYTHON ?= python
 RUN_ENV := PYTHONPATH=src PYTHONIOENCODING=utf-8
 
-.PHONY: help install bench sweep bench-real test lint clean
+.PHONY: help install bench sweep similarity bench-real test lint clean
 
 help:
 	@echo "Available targets:"
@@ -13,7 +13,7 @@ help:
 	@echo "  sweep      - core_share sensitivity sweep (cliff is not a constant artifact)"
 	@echo "  similarity - measure real MCP tool pairwise similarity vs the synthetic catalog (needs .[local])"
 	@echo "  bench-real - Run with real providers (bge-small embed, claude llm); requires extras + API key"
-	@echo "  test       - Run the unittest suite (20 cases)"
+	@echo "  test       - Run the unittest suite"
 	@echo "  lint       - Byte-compile all sources under src"
 	@echo "  clean      - Remove artifacts and __pycache__ directories"
 

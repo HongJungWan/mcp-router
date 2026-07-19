@@ -165,7 +165,8 @@ def _write_md(art: BenchArtifacts, path: str, paths: Dict[str, str]) -> None:
     lines += ["", "## McNemar (recall_hit, paired by query, BH-corrected)", "",
               "Computed on **recall_hit** (the routing question), not the weak task_success. "
               "`b` = A hit / B miss; `c` = B hit / A miss. `q` = Benjamini-Hochberg adjusted p. "
-              "hierarchical-vs-hybrid is genuinely two-sided (keyword collisions).", "",
+              "The hierarchical-vs-hybrid pair can be two-sided (keyword collisions let hybrid "
+              "lose recall) — read b and c from the table below for this run.", "",
               "| size | k | A | B | b | c | χ² | p | q |", "|---|---|---|---|---|---|---|---|---|"]
     for m in art.mcnemar:
         if m["k"] in (1, 3):

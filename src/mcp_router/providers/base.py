@@ -13,7 +13,7 @@ class EmbeddingProvider(Protocol):
 
 @runtime_checkable
 class LLMProvider(Protocol):
-    """Minimal 'select tools for this query' surface used by the ReAct agent and
+    """Minimal 'select tools for this query' surface used by the selection agent and
     the labeler. Real adapters implement the same method via tool-use / function
     calling; the mock implements it deterministically."""
     model_id: str
