@@ -29,14 +29,17 @@ MCP 툴 라우팅의 recall 절벽을 측정하는 오프라인 벤치마크다.
 semantic top-k 라우팅이 정답 툴을 놓치는 현상을, 합성 카탈로그와 mock 임베딩으로 재현하고
 실제 임베딩(bge-small)으로 교차검증한다. 여기에 M1 서빙 게이트웨이(`src/mcp_router/gateway/`:
 federation·RBAC·circuit breaker, M3 라우터 재사용)를 더해, 평가하던 계층을 실제로 돌린다.
+공식 MCP SDK로 실제 stdio/HTTP 업스트림에 연결(헬스체크·자동 재연결)하고 게이트웨이를 MCP 서버로
+서빙하는 경로가 붙어 있으며, 실 서브프로세스 왕복으로 검증된다.
 
 ## 실행
 
 ```bash
-make bench       # 오프라인·순수 stdlib·결정적. artifacts/ 생성
-make test        # unittest 21케이스
-make sweep       # core_share 민감도 스윕
-make bench-real  # bge-small 실제 임베딩 (pip install .[local] 필요)
+make bench         # 오프라인·순수 stdlib·결정적. artifacts/ 생성
+make test          # unittest 41케이스 (.[mcp] 없으면 실제-MCP 통합만 skip)
+make sweep         # core_share 민감도 스윕
+make gateway-demo  # 게이트웨이 walk-through (federation·RBAC·breaker)
+make bench-real    # bge-small 실제 임베딩 (pip install .[local])
 ```
 
 ## 손대기 전에 알아야 할 것
@@ -49,5 +52,8 @@ make bench-real  # bge-small 실제 임베딩 (pip install .[local] 필요)
   없는 실행 증거를 있는 것처럼 쓰지 않는다.
 - **과설계를 되돌리지 않는다.** pgvector·별도 LangGraph 에이전트·OTel·latency 파이프라인은
   의도적으로 뺐다. 다시 넣지 않는다(원칙 2).
+- **게이트웨이 불변식.** RBAC는 deny 우선·`fnmatchcase`(플랫폼 무관 결정성). breaker/Gateway 공유
+  상태는 스레드 안전(ThreadingHTTPServer). MCP SDK는 `mcp_upstream`/`mcp_server`에서 lazy-import
+  (기본 경로가 SDK 없이 돌아야 함). 세션 사망은 재연결 또는 UpstreamError로 표면화한다.
 
 구조 상세는 [README.md](README.md) 참고.
